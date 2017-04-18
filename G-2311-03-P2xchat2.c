@@ -1,14 +1,26 @@
+#include <arpa/inet.h>
+#include <netdb.h>
+#include <netinet/in.h>
+#include <pthread.h>
 #include <redes2/ircxchat.h>
+#include <signal.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/socket.h>
+#include <sys/types.h>
+#include <unistd.h>
+
 #define NUM_BYTES 8192
 #define LOG_NUM 2000
 #define T_AL 20
 #define MAX_DS 100
 
-char id[LOG_NUM]=0;
-char* nickC,userC,realnameC,passwordC,serverC,
-int sock,portC;
-bool sslC;
-
+char id[LOG_NUM] = "";
+char *nickC, userC, realnameC, passwordC, serverC;
+int sock, portC;
+boolean sslC;
+int numero = 14606209;
 /**
  * @defgroup IRCInterface Interface
  *
@@ -22,15 +34,38 @@ bool sslC;
 
 /**
  * @addtogroup IRCInterfaceCallbacks
- * Funciones que van a ser llamadas desde el interface y que deben ser implementadas por el usuario.
+ * Funciones que van a ser llamadas desde el interface y que deben ser
+ * implementadas por el usuario.
  * Todas estas funciones pertenecen al hilo del interfaz.
  *
- * El programador puede, por supuesto, separar todas estas funciones en múltiples ficheros a
+ * El programador puede, por supuesto, separar todas estas funciones en
+ * múltiples ficheros a
  * efectos de desarrollo y modularización.
  *
  * <hr>
  */
+/**
+ * @brief Manejador de la alarma para el Ping.
+ *
+ * @description Crea un mensaje de Ping para lanzarlo al servidor
+*/
 
+void alarma_ping() {
+  char *command, idPing[LOG_NUM] = "";
+
+  command = (char *)malloc(NUM_BYTES * sizeof(char));
+
+  sprintf(idPing, "LAG%d", numero);
+  numero++;
+
+  IRCMsg_Ping(&command, NULL, idPing, NULL);
+  send(sock, command, strlen(command), 0);
+
+  // Escribimos en el registro plano
+  IRCInterface_PlaneRegisterOutMessage(command);
+  free(command);
+  alarm(20);
+}
 /**
  * @ingroup IRCInterfaceCallbacks
  *
@@ -46,10 +81,14 @@ bool sslC;
  * @endcode
  *
  * @description
- * Llamada por el botón de activación de la clave del canal. El segundo parámetro es
- * la clave del canal que se desea poner. Si es NULL deberá impedirse la activación
- * con la función implementada a tal efecto. En cualquier caso sólo se puede realizar si el servidor acepta la orden.
- * Las strings recibidas no deben ser manipuladas por el programador, sólo leídas.
+ * Llamada por el botón de activación de la clave del canal. El segundo
+ *parámetro es
+ * la clave del canal que se desea poner. Si es NULL deberá impedirse la
+ *activación
+ * con la función implementada a tal efecto. En cualquier caso sólo se puede
+ *realizar si el servidor acepta la orden.
+ * Las strings recibidas no deben ser manipuladas por el programador, sólo
+ *leídas.
  *
  * @param[in] channel canal sobre el que se va a activar la clave.
  * @param[in] key clave para el canal indicado.
@@ -62,16 +101,16 @@ bool sslC;
  *<hr>
 */
 
-void IRCInterface_ActivateChannelKey(char *channel, char *key)
-{
-}
+void IRCInterface_ActivateChannelKey(char *channel, char *key) {}
 
 /**
  * @ingroup IRCInterfaceCallbacks
  *
- * @page IRCInterface_ActivateExternalMessages IRCInterface_ActivateExternalMessages
+ * @page IRCInterface_ActivateExternalMessages
+ *IRCInterface_ActivateExternalMessages
  *
- * @brief Llamada por el botón de activación de la recepción de mensajes externos.
+ * @brief Llamada por el botón de activación de la recepción de mensajes
+ *externos.
  *
  * @synopsis
  * @code
@@ -86,7 +125,8 @@ void IRCInterface_ActivateChannelKey(char *channel, char *key)
  * En cualquier caso sólo se puede realizar si el servidor acepta la orden.
  * La string recibida no debe ser manipulada por el programador, sólo leída.
  *
- * @param[in] channel canal sobre el que se activará la recepción de mensajes externos.
+ * @param[in] channel canal sobre el que se activará la recepción de mensajes
+ *externos.
  *
  * @warning Esta función debe ser implementada por el alumno.
  *
@@ -96,9 +136,7 @@ void IRCInterface_ActivateChannelKey(char *channel, char *key)
  *<hr>
 */
 
-void IRCInterface_ActivateExternalMessages(char *channel)
-{
-}
+void IRCInterface_ActivateExternalMessages(char *channel) {}
 
 /**
  * @ingroup IRCInterfaceCallbacks
@@ -130,9 +168,7 @@ void IRCInterface_ActivateExternalMessages(char *channel)
  *<hr>
 */
 
-void IRCInterface_ActivateInvite(char *channel)
-{
-}
+void IRCInterface_ActivateInvite(char *channel) {}
 
 /**
  * @ingroup IRCInterfaceCallbacks
@@ -164,9 +200,7 @@ void IRCInterface_ActivateInvite(char *channel)
  *<hr>
 */
 
-void IRCInterface_ActivateModerated(char *channel)
-{
-}
+void IRCInterface_ActivateModerated(char *channel) {}
 
 /**
  * @ingroup IRCInterfaceCallbacks
@@ -183,8 +217,10 @@ void IRCInterface_ActivateModerated(char *channel)
  * @endcode
  *
  * @description
- * Llamada por el botón de activación del límite de usuarios en el canal. El segundo es el
- * límite de usuarios que se desea poner. Si el valor es 0 se sobrentiende que se desea eliminar
+ * Llamada por el botón de activación del límite de usuarios en el canal. El
+ *segundo es el
+ * límite de usuarios que se desea poner. Si el valor es 0 se sobrentiende que
+ *se desea eliminar
  * este límite.
  *
  * En cualquier caso sólo se puede realizar si el servidor acepta la orden.
@@ -201,9 +237,7 @@ void IRCInterface_ActivateModerated(char *channel)
  *<hr>
 */
 
-void IRCInterface_ActivateNicksLimit(char *channel, int limit)
-{
-}
+void IRCInterface_ActivateNicksLimit(char *channel, int limit) {}
 
 /**
  * @ingroup IRCInterfaceCallbacks
@@ -235,9 +269,7 @@ void IRCInterface_ActivateNicksLimit(char *channel, int limit)
  *<hr>
 */
 
-void IRCInterface_ActivatePrivate(char *channel)
-{
-}
+void IRCInterface_ActivatePrivate(char *channel) {}
 
 /**
  * @ingroup IRCInterfaceCallbacks
@@ -259,7 +291,8 @@ void IRCInterface_ActivatePrivate(char *channel)
  * En cualquier caso sólo se puede realizar si el servidor acepta la orden.
  * La string recibida no debe ser manipulada por el programador, sólo leída.
  *
- * @param[in] channel canal sobre el que se va a activar la protección de tópico.
+ * @param[in] channel canal sobre el que se va a activar la protección de
+ *tópico.
  *
  * @warning Esta función debe ser implementada por el alumno.
  *
@@ -269,9 +302,7 @@ void IRCInterface_ActivatePrivate(char *channel)
  *<hr>
 */
 
-void IRCInterface_ActivateProtectTopic(char *channel)
-{
-}
+void IRCInterface_ActivateProtectTopic(char *channel) {}
 
 /**
  * @ingroup IRCInterfaceCallbacks
@@ -303,9 +334,7 @@ void IRCInterface_ActivateProtectTopic(char *channel)
  *<hr>
 */
 
-void IRCInterface_ActivateSecret(char *channel)
-{
-}
+void IRCInterface_ActivateSecret(char *channel) {}
 
 /**
  * @ingroup IRCInterfaceCallbacks
@@ -326,9 +355,11 @@ void IRCInterface_ActivateSecret(char *channel)
  * canal para darle voz a dicho usuario.
  *
  * En cualquier caso sólo se puede realizar si el servidor acepta la orden.
- * Las strings recibidas no deben ser manipuladas por el programador, sólo leídas.
+ * Las strings recibidas no deben ser manipuladas por el programador, sólo
+ *leídas.
  *
- * @param[in] channel canal sobre el que se va a realizar el baneo. En principio es un valor innecesario.
+ * @param[in] channel canal sobre el que se va a realizar el baneo. En principio
+ *es un valor innecesario.
  * @param[in] nick nick del usuario que va a ser baneado
  *
  * @warning Esta función debe ser implementada por el alumno.
@@ -339,10 +370,42 @@ void IRCInterface_ActivateSecret(char *channel)
  *<hr>
 */
 
-void IRCInterface_BanNick(char *channel, char *nick)
-{
-}
+void IRCInterface_BanNick(char *channel, char *nick) {}
+void client() {
+  char sendBuff[100], client_message[LOG_NUM];
+  char *command, *pipeCommand, *pipe;
 
+  pipe = (char *)malloc(NUM_BYTES * sizeof(char));
+  command = (char *)malloc(NUM_BYTES * sizeof(char));
+  if (pipe == NULL || command == NULL)
+    return -1;
+
+  alarm(20);
+  printf("Vamos a crear alarma\n");
+  if (signal(SIGALRM, alarma_ping) == SIG_ERR)
+    return -1;
+
+  while (1) {
+
+    bzero(command, NUM_BYTES);
+
+    //  if (recvCommand(sock, command) == -1)
+    //  return;
+
+    pipe = IRC_UnPipelineCommands(command, &pipeCommand);
+
+    while (pipe != NULL) {
+
+      // commandARealizar(pipeCommand, sock);
+
+      pipe = IRC_UnPipelineCommands(NULL, &pipeCommand);
+    }
+
+    bzero(command, NUM_BYTES);
+  }
+
+  return;
+}
 /**
  * @ingroup IRCInterfaceCallbacks
  *
@@ -354,30 +417,37 @@ void IRCInterface_BanNick(char *channel, char *nick)
  * @code
  *	#include <redes2/ircxchat.h>
  *
- * 	long IRCInterface_Connect (char *nick, char * user, char * realname, char * password, char * server, int port, boolean ssl)
+ * 	long IRCInterface_Connect (char *nick, char * user, char * realname,
+ *char * password, char * server, int port, boolean ssl)
  * @endcode
  *
  * @description
  * Función a implementar por el programador.
- * Llamada por los distintos botones de conexión. Si implementará la comunicación completa, incluido
+ * Llamada por los distintos botones de conexión. Si implementará la
+ *comunicación completa, incluido
  * el registro del usuario en el servidor.
  *
  * En cualquier caso sólo se puede realizar si el servidor acepta la orden.
- * Las strings recibidas no deben ser manipuladas por el programador, sólo leída.
+ * Las strings recibidas no deben ser manipuladas por el programador, sólo
+ *leída.
  *
  *
  * @param[in] nick nick con el que se va a realizar la conexíón.
  * @param[in] user usuario con el que se va a realizar la conexión.
  * @param[in] realname nombre real con el que se va a realizar la conexión.
  * @param[in] password password del usuario si es necesaria, puede valer NULL.
- * @param[in] server nombre o ip del servidor con el que se va a realizar la conexión.
+ * @param[in] server nombre o ip del servidor con el que se va a realizar la
+ *conexión.
  * @param[in] port puerto del servidor con el que se va a realizar la conexión.
- * @param[in] ssl puede ser TRUE si la conexión tiene que ser segura y FALSE si no es así.
+ * @param[in] ssl puede ser TRUE si la conexión tiene que ser segura y FALSE si
+ *no es así.
  *
  * @retval IRC_OK si todo ha sido correcto (debe devolverlo).
- * @retval IRCERR_NOSSL si el valor de SSL es TRUE y no se puede activar la conexión SSL pero sí una
+ * @retval IRCERR_NOSSL si el valor de SSL es TRUE y no se puede activar la
+ *conexión SSL pero sí una
  * conexión no protegida (debe devolverlo).
- * @retval IRCERR_NOCONNECT en caso de que no se pueda realizar la comunicación (debe devolverlo).
+ * @retval IRCERR_NOCONNECT en caso de que no se pueda realizar la comunicación
+ *(debe devolverlo).
  *
  * @warning Esta función debe ser implementada por el alumno.
  *
@@ -387,95 +457,64 @@ void IRCInterface_BanNick(char *channel, char *nick)
  *<hr>
 */
 
-long IRCInterface_Connect(char *nick, char *user, char *realname, char *password, char *server, int port, boolean ssl)
-{
-	struct hostent *he;  /* struct que recibirá información sobre el nodo remoto */
-	struct sockaddr_in serverdir;  /* información sobre la dirección del servidor */
-	struct sockaddr_in serveraux;
+long IRCInterface_Connect(char *nick, char *user, char *realname,
+                          char *password, char *server, int port, boolean ssl) {
+  struct hostent *he;
+  struct sockaddr_in serverdir;
+  struct sockaddr_in serveraux;
   pthread_t pthread;
   pthread_attr_t attr;
-	char *ip, *command,buffer[MAX_DS],client_msg[LOG_NUM];;
-	int *nsocket,numbytes,err;
+  char *ip, *command, buffer[MAX_DS], client_msg[LOG_NUM];
+  int *nsocket, numbytes, err;
 
-  memcpy(nickC, nick, strlen(nick)+1);
-  memcpy(userC, user, strlen(user)+1);
-  memcpy(realnameC, realname, strlen(realname)+1);
-  memcpy(passwordC, password, strlen(password)+1);
- portC =port;
- sslC =ssl;
- // mutex?
- if ((he = gethostbyname(server)) == NULL) return IRCERR_NOCONNECT;
+  memcpy(nickC, nick, strlen(nick) + 1);
+  memcpy(userC, user, strlen(user) + 1);
+  memcpy(realnameC, realname, strlen(realname) + 1);
+  memcpy(passwordC, password, strlen(password) + 1);
+  portC = port;
+  sslC = ssl;
+  // mutex?
+  if ((he = gethostbyname(server)) == NULL)
+    return IRCERR_NOCONNECT;
 
- if ((sock = socket(AF_INET, SOCK_STREAM, 0)) == -1) return IRCERR_NOCONNECT;
+  if ((sock = socket(AF_INET, SOCK_STREAM, 0)) == -1)
+    return IRCERR_NOCONNECT;
 
- serverdir.sin_family = AF_INET;
- serverdir.sin_port = htons(port);
- serverdir.sin_addr = *((struct in_addr *)he->h_addr);
+  serverdir.sin_family = AF_INET;
+  serverdir.sin_port = htons(port);
+  serverdir.sin_addr = *((struct in_addr *)he->h_addr);
 
- bzero(&(serverdir.sin_zero),8);
- pthread_attr_init(&attr);
- err = pthread_create(&pthread,NULL, client,NULL);
-if (err < 0) return IRCERR_NOCONNECT;
+  bzero(&(serverdir.sin_zero), 8);
+  pthread_attr_init(&attr);
+  if (pthread_create(&pthread, NULL, client, NULL) < 0)
+    return IRCERR_NOCONNECT;
 
-   if (connect(sock, (struct sockaddr *)&serverdir, sizeof(struct sockaddr)) == -1)
+  if (connect(sock, (struct sockaddr *)&serverdir, sizeof(struct sockaddr)) ==
+      -1)
+    return IRCERR_NOCONNECT;
 
-         return IRCERR_NOCONNECT;
-         ip = inet_ntoa(serverdir.sin_addr);
+  ip = inet_ntoa(serverdir.sin_addr);
 
-     		printf("Conectado con el servidor. ¡Ole!\n");
+  printf("Conectado con el servidor. ¡Ole!\n");
 
+  printf("Enviamos CAP LS\n");
+  send(sock, "CAP LS\r\n", strlen("CAP LS\r\n"), 0);
 
-     		printf("Enviamos CAP LS\n");
-     		send(sock, "CAP LS\r\n", strlen("CAP LS\r\n"), 0);
+  printf("Enviamos Msg_Nick\n");
+  if (IRCMsg_Nick(&command, NULL, nick, NULL) != IRC_OK)
+    return IRCERR_NOCONNECT;
+  send(sock, command, strlen(command), 0);
 
-     		printf("Enviamos Msg_Nick\n");
-     		if (IRCMsg_Nick(&command, NULL, nick, NULL) != IRC_OK) return IRCERR_NOCONNECT;
-     		send(sock, command, strlen(command), 0);
+  printf("Enviamos Msg_User\n");
+  if (IRCMsg_User(&command, NULL, user, "w", realname) != IRC_OK)
+    return IRCERR_NOCONNECT;
+  send(sock, command, strlen(command), 0);
 
-     		printf("Enviamos Msg_User\n");
-     		if (IRCMsg_User(&command, NULL, user, "w", realname) != IRC_OK) return IRCERR_NOCONNECT;
-     		send(sock, command, strlen(command), 0);
-
-     		printf("Enviamos CAP END\n");
-     		send(sock, "CAP END\r\n", strlen("CAP END\r\n"), 0);
-	return IRC_OK;
+  printf("Enviamos CAP END\n");
+  send(sock, "CAP END\r\n", strlen("CAP END\r\n"), 0);
+  return IRC_OK;
 }
 
-void client(){
-  char sendBuff[100], client_message[LOG_NUM];
-  char *command,*pipeCommand, *pipe;
-
-    pipe = (char*)malloc(NUM_BYTES*sizeof(char));
-    command = (char*)malloc(NUM_BYTES*sizeof(char))
-    if (pipe == NULL || command ==NULL) return -1;
-
-  alarm(20);
-  printf("Vamos a crear alarma\n");
-  if (signal(SIGALRM, alarma_ping) == SIG_ERR) return -1;
-  while(1) {
-
-		bzero(command,NUM_BYTES);
-
-
-		if (recvCommand(sock, command) == -1) return;
-
-
-		pipe = IRC_UnPipelineCommands(command, &pipeCommand, pipe);
-
-	    while (pipe != NULL) {
-
-			commandARealizar(pipeCommand, sock);
-
-			pipe = IRC_UnPipelineCommands(NULL, &pipeCommand, pipe);
-
-	    }
-
-	    bzero(command,NUM_BYTES);
-
-	}
-
-	return;
-}
 /**
  * @ingroup IRCInterfaceCallbacks
  *
@@ -506,16 +545,16 @@ void client(){
  *<hr>
 */
 
-void IRCInterface_DeactivateChannelKey(char *channel)
-{
-}
+void IRCInterface_DeactivateChannelKey(char *channel) {}
 
 /**
  * @ingroup IRCInterfaceCallbacks
  *
- * @page IRCInterface_DeactivateExternalMessages IRCInterface_DeactivateExternalMessages
+ * @page IRCInterface_DeactivateExternalMessages
+ *IRCInterface_DeactivateExternalMessages
  *
- * @brief Llamada por el botón de desactivación de la recepción de mensajes externos.
+ * @brief Llamada por el botón de desactivación de la recepción de mensajes
+ *externos.
  *
  * @synopsis
  * @code
@@ -530,7 +569,8 @@ void IRCInterface_DeactivateChannelKey(char *channel)
  * En cualquier caso sólo se puede realizar si el servidor acepta la orden.
  * La string recibida no debe ser manipulada por el programador, sólo leída.
  *
- * @param[in] channel canal sobre el que se va a deactivar la recepción de mensajes externos.
+ * @param[in] channel canal sobre el que se va a deactivar la recepción de
+ *mensajes externos.
  *
  * @warning Esta función debe ser implementada por el alumno.
  *
@@ -540,9 +580,7 @@ void IRCInterface_DeactivateChannelKey(char *channel)
  *<hr>
 */
 
-void IRCInterface_DeactivateExternalMessages(char *channel)
-{
-}
+void IRCInterface_DeactivateExternalMessages(char *channel) {}
 
 /**
  * @ingroup IRCInterfaceCallbacks
@@ -574,9 +612,7 @@ void IRCInterface_DeactivateExternalMessages(char *channel)
  *<hr>
 */
 
-void IRCInterface_DeactivateInvite(char *channel)
-{
-}
+void IRCInterface_DeactivateInvite(char *channel) {}
 
 /**
  * @ingroup IRCInterfaceCallbacks
@@ -608,9 +644,7 @@ void IRCInterface_DeactivateInvite(char *channel)
  *<hr>
 */
 
-void IRCInterface_DeactivateModerated(char *channel)
-{
-}
+void IRCInterface_DeactivateModerated(char *channel) {}
 
 /**
  * @ingroup IRCInterfaceCallbacks
@@ -632,7 +666,8 @@ void IRCInterface_DeactivateModerated(char *channel)
  * En cualquier caso sólo se puede realizar si el servidor acepta la orden.
  * La string recibida no debe ser manipulada por el programador, sólo leída.
  *
- * @param[in] channel canal sobre el que se va a desactivar el límite de usuarios.
+ * @param[in] channel canal sobre el que se va a desactivar el límite de
+ *usuarios.
  *
  * @warning Esta función debe ser implementada por el alumno.
  *
@@ -642,9 +677,7 @@ void IRCInterface_DeactivateModerated(char *channel)
  *<hr>
 */
 
-void IRCInterface_DeactivateNicksLimit(char *channel)
-{
-}
+void IRCInterface_DeactivateNicksLimit(char *channel) {}
 
 /**
  * @ingroup IRCInterfaceCallbacks
@@ -678,9 +711,7 @@ void IRCInterface_DeactivateNicksLimit(char *channel)
  *<hr>
 */
 
-void IRCInterface_DeactivatePrivate(char *channel)
-{
-}
+void IRCInterface_DeactivatePrivate(char *channel) {}
 
 /**
  * @ingroup IRCInterfaceCallbacks
@@ -702,7 +733,8 @@ void IRCInterface_DeactivatePrivate(char *channel)
  * En cualquier caso sólo se puede realizar si el servidor acepta la orden.
  * La string recibida no debe ser manipulada por el programador, sólo leída.
  *
- * @param[in] channel canal sobre el que se va a desactivar la protección de tópico.
+ * @param[in] channel canal sobre el que se va a desactivar la protección de
+ *tópico.
  *
  * @warning Esta función debe ser implementada por el alumno.
  *
@@ -712,9 +744,7 @@ void IRCInterface_DeactivatePrivate(char *channel)
  *<hr>
 */
 
-void IRCInterface_DeactivateProtectTopic(char *channel)
-{
-}
+void IRCInterface_DeactivateProtectTopic(char *channel) {}
 
 /**
  * @ingroup IRCInterfaceCallbacks
@@ -736,7 +766,8 @@ void IRCInterface_DeactivateProtectTopic(char *channel)
  * En cualquier caso sólo se puede realizar si el servidor acepta la orden.
  * La string recibida no debe ser manipulada por el programador, sólo leída.
  *
- * @param[in] channel canal sobre el que se va a desactivar la propiedad de canal secreto.
+ * @param[in] channel canal sobre el que se va a desactivar la propiedad de
+ *canal secreto.
  *
  * @warning Esta función debe ser implementada por el alumno.
  *
@@ -746,9 +777,7 @@ void IRCInterface_DeactivateProtectTopic(char *channel)
  *<hr>
 */
 
-void IRCInterface_DeactivateSecret(char *channel)
-{
-}
+void IRCInterface_DeactivateSecret(char *channel) {}
 
 /**
  * @ingroup IRCInterfaceCallbacks
@@ -765,12 +794,14 @@ void IRCInterface_DeactivateSecret(char *channel)
  * @endcode
  *
  * @description
- * Llamada por los distintos botones de desconexión. Debe cerrar la conexión con el servidor.
+ * Llamada por los distintos botones de desconexión. Debe cerrar la conexión con
+ el servidor.
  *
  * En cualquier caso sólo se puede realizar si el servidor acepta la orden.
  * La string recibida no debe ser manipulada por el programador, sólo leída.
 
- * @param[in] server nombre o ip del servidor del que se va a realizar la desconexión.
+ * @param[in] server nombre o ip del servidor del que se va a realizar la
+ desconexión.
  * @param[in] port puerto sobre el que se va a realizar la desconexión.
  *
  * @retval TRUE si se ha cerrado la conexión (debe devolverlo).
@@ -784,19 +815,18 @@ void IRCInterface_DeactivateSecret(char *channel)
  *<hr>
 */
 
-boolean IRCInterface_DisconnectServer(char *server, int port)
-{
+boolean IRCInterface_DisconnectServer(char *server, int port) {
   printf("Desconectamos del server\n");
 
-  char *command;// = (char*)malloc(sizeof(char)*8192);
+  char *command; // = (char*)malloc(sizeof(char)*8192);
 
   printf("QUIT - Enviamos Msg_Quit\n");
 
-  if (IRCMsg_Quit(&command, NULL, "Salir, Adios") != IRC_OK) return FALSE;
+  if (IRCMsg_Quit(&command, NULL, "Salir, Adios") != IRC_OK)
+    return FALSE;
 
   IRCInterface_PlaneRegisterOutMessage(command);
   send(sock, command, strlen(command), 0);
-
 
   IRCInterface_WriteSystem("*", "Desconectado ().");
   IRCInterface_RemoveAllChannels();
@@ -804,7 +834,7 @@ boolean IRCInterface_DisconnectServer(char *server, int port)
   alarm(0);
 
   free(command);
-	return TRUE;
+  return TRUE;
 }
 
 /**
@@ -822,8 +852,10 @@ boolean IRCInterface_DisconnectServer(char *server, int port)
  * @endcode
  *
  * @description
- * Llamada por el botón "Parar" del diálogo de chat de voz. Previamente debe seleccionarse un nick del
- * canal para darle voz a dicho usuario. Esta función cierrala comunicación. Evidentemente tiene que
+ * Llamada por el botón "Parar" del diálogo de chat de voz. Previamente debe
+ *seleccionarse un nick del
+ * canal para darle voz a dicho usuario. Esta función cierrala comunicación.
+ *Evidentemente tiene que
  * actuar sobre el hilo de chat de voz.
  *
  * En cualquier caso sólo se puede realizar si el servidor acepta la orden.
@@ -842,10 +874,7 @@ boolean IRCInterface_DisconnectServer(char *server, int port)
  *<hr>
 */
 
-boolean IRCInterface_ExitAudioChat(char *nick)
-{
-	return TRUE;
-}
+boolean IRCInterface_ExitAudioChat(char *nick) { return TRUE; }
 
 /**
  * @ingroup IRCInterfaceCallbacks
@@ -866,7 +895,8 @@ boolean IRCInterface_ExitAudioChat(char *nick)
  * canal para darle "op" a dicho usuario.
  *
  * En cualquier caso sólo se puede realizar si el servidor acepta la orden.
- * Las strings recibidas no deben ser manipuladas por el programador, sólo leídas.
+ * Las strings recibidas no deben ser manipuladas por el programador, sólo
+ *leídas.
  *
  * @param[in] channel canal sobre el que se va dar op al usuario.
  * @param[in] nick nick al que se le va a dar el nivel de op.
@@ -879,9 +909,7 @@ boolean IRCInterface_ExitAudioChat(char *nick)
  *<hr>
 */
 
-void IRCInterface_GiveOp(char *channel, char *nick)
-{
-}
+void IRCInterface_GiveOp(char *channel, char *nick) {}
 
 /**
  * @ingroup IRCInterfaceCallbacks
@@ -902,7 +930,8 @@ void IRCInterface_GiveOp(char *channel, char *nick)
  * canal para darle voz a dicho usuario.
  *
  * En cualquier caso sólo se puede realizar si el servidor acepta la orden.
- * Las strings recibidas no deben ser manipuladas por el programador, sólo leídas.
+ * Las strings recibidas no deben ser manipuladas por el programador, sólo
+ *leídas.
  *
  * @param[in] channel canal sobre el que se va dar voz al usuario.
  * @param[in] nick nick al que se le va a dar voz.
@@ -915,9 +944,7 @@ void IRCInterface_GiveOp(char *channel, char *nick)
  *<hr>
 */
 
-void IRCInterface_GiveVoice(char *channel, char *nick)
-{
-}
+void IRCInterface_GiveVoice(char *channel, char *nick) {}
 
 /**
  * @ingroup IRCInterfaceCallbacks
@@ -938,7 +965,8 @@ void IRCInterface_GiveVoice(char *channel, char *nick)
  * canal para darle voz a dicho usuario.
  *
  * En cualquier caso sólo se puede realizar si el servidor acepta la orden.
- * Las strings recibidas no deben ser manipuladas por el programador, sólo leídas.
+ * Las strings recibidas no deben ser manipuladas por el programador, sólo
+ *leídas.
  *
  * @param[in] channel canal sobre el que se va a expulsar al usuario.
  * @param[in] nick nick del usuario que va a ser expulsado.
@@ -951,9 +979,7 @@ void IRCInterface_GiveVoice(char *channel, char *nick)
  *<hr>
 */
 
-void IRCInterface_KickNick(char *channel, char *nick)
-{
-}
+void IRCInterface_KickNick(char *channel, char *nick) {}
 
 /**
  * @ingroup IRCInterfaceCallbacks
@@ -970,7 +996,8 @@ void IRCInterface_KickNick(char *channel, char *nick)
  * @endcode
  *
  * @description
- * Llamada de la tecla ENTER en el campo de texto y comandos. El texto deberá ser
+ * Llamada de la tecla ENTER en el campo de texto y comandos. El texto deberá
+ *ser
  * enviado y el comando procesado por las funciones de "parseo" de comandos de
  * usuario.
  *
@@ -987,9 +1014,7 @@ void IRCInterface_KickNick(char *channel, char *nick)
  *<hr>
 */
 
-void IRCInterface_NewCommandText(char *command)
-{
-}
+void IRCInterface_NewCommandText(char *command) {}
 
 /**
  * @ingroup IRCInterfaceCallbacks
@@ -1022,9 +1047,7 @@ void IRCInterface_NewCommandText(char *command)
  *<hr>
 */
 
-void IRCInterface_NewTopicEnter(char *topicdata)
-{
-}
+void IRCInterface_NewTopicEnter(char *topicdata) {}
 
 /**
  * @ingroup IRCInterfaceCallbacks
@@ -1037,17 +1060,22 @@ void IRCInterface_NewTopicEnter(char *topicdata)
  * @code
  *	#include <redes2/ircxchat.h>
  *
- * 	void IRCInterface_SendFile (char * filename, char *nick, char *data, long unsigned int length)
+ * 	void IRCInterface_SendFile (char * filename, char *nick, char *data,
+ *long unsigned int length)
  * @endcode
  *
  * @description
- * Llamada por el botón "Enviar Archivo". Previamente debe seleccionarse un nick del
- * canal para darle voz a dicho usuario. Esta función como todos los demás callbacks bloquea el interface
- * y por tanto es el programador el que debe determinar si crea un nuevo hilo para enviar el archivo o
+ * Llamada por el botón "Enviar Archivo". Previamente debe seleccionarse un nick
+ *del
+ * canal para darle voz a dicho usuario. Esta función como todos los demás
+ *callbacks bloquea el interface
+ * y por tanto es el programador el que debe determinar si crea un nuevo hilo
+ *para enviar el archivo o
  * no lo hace.
  *
  * En cualquier caso sólo se puede realizar si el servidor acepta la orden.
- * Las strings recibidas no deben ser manipuladas por el programador, sólo leídas.
+ * Las strings recibidas no deben ser manipuladas por el programador, sólo
+ *leídas.
  *
  * @param[in] filename nombre del fichero a enviar.
  * @param[in] nick nick del usuario que enviará el fichero.
@@ -1065,9 +1093,9 @@ void IRCInterface_NewTopicEnter(char *topicdata)
  *<hr>
 */
 
-boolean IRCInterface_SendFile(char *filename, char *nick, char *data, long unsigned int length)
-{
-	return TRUE;
+boolean IRCInterface_SendFile(char *filename, char *nick, char *data,
+                              long unsigned int length) {
+  return TRUE;
 }
 
 /**
@@ -1085,9 +1113,12 @@ boolean IRCInterface_SendFile(char *filename, char *nick, char *data, long unsig
  * @endcode
  *
  * @description
- * Llamada por el botón "Iniciar" del diálogo de chat de voz. Previamente debe seleccionarse un nick del
- * canal para darle voz a dicho usuario. Esta función como todos los demás callbacks bloquea el interface
- * y por tanto para mantener la funcionalidad del chat de voz es imprescindible crear un hilo a efectos
+ * Llamada por el botón "Iniciar" del diálogo de chat de voz. Previamente debe
+ *seleccionarse un nick del
+ * canal para darle voz a dicho usuario. Esta función como todos los demás
+ *callbacks bloquea el interface
+ * y por tanto para mantener la funcionalidad del chat de voz es imprescindible
+ *crear un hilo a efectos
  * de comunicación de voz.
  *
  * En cualquier caso sólo se puede realizar si el servidor acepta la orden.
@@ -1106,10 +1137,7 @@ boolean IRCInterface_SendFile(char *filename, char *nick, char *data, long unsig
  *<hr>
 */
 
-boolean IRCInterface_StartAudioChat(char *nick)
-{
-	return TRUE;
-}
+boolean IRCInterface_StartAudioChat(char *nick) { return TRUE; }
 
 /**
  * @ingroup IRCInterfaceCallbacks
@@ -1126,8 +1154,10 @@ boolean IRCInterface_StartAudioChat(char *nick)
  * @endcode
  *
  * @description
- * Llamada por el botón "Parar" del diálogo de chat de voz. Previamente debe seleccionarse un nick del
- * canal para darle voz a dicho usuario. Esta función sólo para la comunicación que puede ser reiniciada.
+ * Llamada por el botón "Parar" del diálogo de chat de voz. Previamente debe
+ *seleccionarse un nick del
+ * canal para darle voz a dicho usuario. Esta función sólo para la comunicación
+ *que puede ser reiniciada.
  * Evidentemente tiene que actuar sobre el hilo de chat de voz.
  *
  * En cualquier caso sólo se puede realizar si el servidor acepta la orden.
@@ -1146,10 +1176,7 @@ boolean IRCInterface_StartAudioChat(char *nick)
  *<hr>
 */
 
-boolean IRCInterface_StopAudioChat(char *nick)
-{
-	return TRUE;
-}
+boolean IRCInterface_StopAudioChat(char *nick) { return TRUE; }
 
 /**
  * @ingroup IRCInterfaceCallbacks
@@ -1170,7 +1197,8 @@ boolean IRCInterface_StopAudioChat(char *nick)
  * canal para quitarle "op" a dicho usuario.
  *
  * En cualquier caso sólo se puede realizar si el servidor acepta la orden.
- * Las strings recibidas no deben ser manipuladas por el programador, sólo leídas.
+ * Las strings recibidas no deben ser manipuladas por el programador, sólo
+ *leídas.
  *
  * @param[in] channel canal sobre el que se va a quitar op al usuario.
  * @param[in] nick nick del usuario al que se le va a quitar op.
@@ -1183,9 +1211,7 @@ boolean IRCInterface_StopAudioChat(char *nick)
  *<hr>
 */
 
-void IRCInterface_TakeOp(char *channel, char *nick)
-{
-}
+void IRCInterface_TakeOp(char *channel, char *nick) {}
 
 /**
  * @ingroup IRCInterfaceCallbacks
@@ -1206,7 +1232,8 @@ void IRCInterface_TakeOp(char *channel, char *nick)
  * canal para darle voz a dicho usuario.
  *
  * En cualquier caso sólo se puede realizar si el servidor acepta la orden.
- * Las strings recibidas no deben ser manipuladas por el programador, sólo leídas.
+ * Las strings recibidas no deben ser manipuladas por el programador, sólo
+ *leídas.
  *
  * @param[in] channel canal sobre el que se le va a quitar voz al usuario.
  * @param[in] nick nick del usuario al que se va a quitar la voz.
@@ -1219,62 +1246,49 @@ void IRCInterface_TakeOp(char *channel, char *nick)
  *<hr>
 */
 
-void IRCInterface_TakeVoice(char *channel, char *nick)
-{
-}
-/**
-
- * @brief Manejador de la alarma para el Ping.
- *
- * @description Crea un mensaje de Ping para lanzarlo al servidor
-*/
-void alarma_ping() {
-	char *command, idPing[LOG_NUM]="";
-
-  command = (char*)malloc(NUM_BYTES*sizeof(char))
-
-	sprintf(idPing, "LAG%d", numero);
-  id ++;
-
-	IRCMsg_Ping(&command, NULL, numerototal, NULL);
-	send(sock, command, strlen(command), 0);
-
-	// Escribimos en el registro plano
-	IRCInterface_PlaneRegisterOutMessage(command);
-
-	alarm(20);
-}
+void IRCInterface_TakeVoice(char *channel, char *nick) {}
 
 /***************************************************************************************************/
 /***************************************************************************************************/
-/**                                                                                               **/
-/** MMMMMMMMMM               MMMMM           AAAAAAA           IIIIIII NNNNNNNNNN          NNNNNN **/
-/**  MMMMMMMMMM             MMMMM            AAAAAAAA           IIIII   NNNNNNNNNN          NNNN  **/
-/**   MMMMM MMMM           MM MM            AAAAA   AA           III     NNNNN NNNN          NN   **/
-/**   MMMMM  MMMM         MM  MM            AAAAA   AA           III     NNNNN  NNNN         NN   **/
-/**   MMMMM   MMMM       MM   MM           AAAAA     AA          III     NNNNN   NNNN        NN   **/
-/**   MMMMM    MMMM     MM    MM           AAAAA     AA          III     NNNNN    NNNN       NN   **/
-/**   MMMMM     MMMM   MM     MM          AAAAA       AA         III     NNNNN     NNNN      NN   **/
-/**   MMMMM      MMMM MM      MM          AAAAAAAAAAAAAA         III     NNNNN      NNNN     NN   **/
-/**   MMMMM       MMMMM       MM         AAAAA         AA        III     NNNNN       NNNN    NN   **/
-/**   MMMMM        MMM        MM         AAAAA         AA        III     NNNNN        NNNN   NN   **/
-/**   MMMMM                   MM        AAAAA           AA       III     NNNNN         NNNN  NN   **/
-/**   MMMMM                   MM        AAAAA           AA       III     NNNNN          NNNN NN   **/
-/**  MMMMMMM                 MMMM     AAAAAA            AAAA    IIIII   NNNNNN           NNNNNNN  **/
-/** MMMMMMMMM               MMMMMM  AAAAAAAA           AAAAAA  IIIIIII NNNNNNN            NNNNNNN **/
-/**                                                                                               **/
+/** **/
+/** MMMMMMMMMM               MMMMM           AAAAAAA           IIIIIII
+ * NNNNNNNNNN          NNNNNN **/
+/**  MMMMMMMMMM             MMMMM            AAAAAAAA           IIIII
+ * NNNNNNNNNN          NNNN  **/
+/**   MMMMM MMMM           MM MM            AAAAA   AA           III     NNNNN
+ * NNNN          NN   **/
+/**   MMMMM  MMMM         MM  MM            AAAAA   AA           III     NNNNN
+ * NNNN         NN   **/
+/**   MMMMM   MMMM       MM   MM           AAAAA     AA          III     NNNNN
+ * NNNN        NN   **/
+/**   MMMMM    MMMM     MM    MM           AAAAA     AA          III     NNNNN
+ * NNNN       NN   **/
+/**   MMMMM     MMMM   MM     MM          AAAAA       AA         III     NNNNN
+ * NNNN      NN   **/
+/**   MMMMM      MMMM MM      MM          AAAAAAAAAAAAAA         III     NNNNN
+ * NNNN     NN   **/
+/**   MMMMM       MMMMM       MM         AAAAA         AA        III     NNNNN
+ * NNNN    NN   **/
+/**   MMMMM        MMM        MM         AAAAA         AA        III     NNNNN
+ * NNNN   NN   **/
+/**   MMMMM                   MM        AAAAA           AA       III     NNNNN
+ * NNNN  NN   **/
+/**   MMMMM                   MM        AAAAA           AA       III     NNNNN
+ * NNNN NN   **/
+/**  MMMMMMM                 MMMM     AAAAAA            AAAA    IIIII   NNNNNN
+ * NNNNNNN  **/
+/** MMMMMMMMM               MMMMMM  AAAAAAAA           AAAAAA  IIIIIII NNNNNNN
+ * NNNNNNN **/
+/** **/
 /***************************************************************************************************/
 /***************************************************************************************************/
 
+int main(int argc, char *argv[]) {
+  /* La función IRCInterface_Run debe ser llamada al final      */
+  /* del main y es la que activa el interfaz gráfico quedándose */
+  /* en esta función hasta que se pulsa alguna salida del       */
+  /* interfaz gráfico.                                          */
+  IRCInterface_Run(argc, argv);
 
-
-int main (int argc, char *argv[])
-{
-	/* La función IRCInterface_Run debe ser llamada al final      */
-	/* del main y es la que activa el interfaz gráfico quedándose */
-	/* en esta función hasta que se pulsa alguna salida del       */
-	/* interfaz gráfico.                                          */
-	IRCInterface_Run(argc, argv);
-
-	return 0;
+  return 0;
 }

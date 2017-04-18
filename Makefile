@@ -6,54 +6,32 @@ OBJ = ./obj/
 SRCLIB = ./srclib/
 SRC = ./src/
 DIRS = obj lib
-GROUP = G-2311-03-P1
+GROUP = G-2311-03-P2
 #Compilador
 CC = gcc -pthread
 #Librerias
 LDFLAGS = -lm
-CCLAGS = -ggdb -Wall
+CCLIBS = -lircinterface -lircredes -lirctad
+CCLAGS =  -rdynamic
+FLAGS = `pkg-config --cflags gtk+-3.0 --libs gtk+-3.0`
+FLAGSE = `pkg-config --libs gtk+-3.0`
+FLAGSC = `pkg-config --cflags gtk+-3.0`
 #Ficheros
-EXEC = servidor
+EXEC = cliente
 SOURCE_FILES =
 
-all: dirs $(EXEC)
+all: $(EXEC)
 
-dirs:
-	mkdir -p $(DIRS)
+$(EXEC): $(GROUP)xchat2.o
+			$(CC) $^ -o $@ $(CCLIBS) $(FLAGSE) $(CCLAGS)
 
-libreria: $(LIB)lib.a
-
-$(LIB)lib.a: $(OBJ)lib.o
-	ar -rv $@ $^
-	@echo "Libreria lib.a generada"
-
-$(EXEC): $(OBJ)server.o $(OBJ)commands.o $(OBJ)canal.o $(OBJ)user.o $(OBJ)utilidadesTAD.o $(LIB)lib.a
-	$(CC) $(CCFLAGS) $^ -o  $@ -lircredes -lirctad
-	@echo "Ejecutable servidor creado"
-
-$(OBJ)server.o: $(SRC)$(GROUP)server.c
-	$(CC) $(CCFLAGS) -o $@ -c $^
-
-$(OBJ)commands.o: $(SRC)$(GROUP)commands.c
-	$(CC) $(CCFLAGS) -o $@ -c $^
-
-$(OBJ)canal.o: $(SRC)$(GROUP)canal.c
-	$(CC) $(CCFLAGS) -o $@ -c $^
-
-$(OBJ)user.o: $(SRC)$(GROUP)user.c
-	$(CC) $(CCFLAGS) -o $@ -c $^
-
-$(OBJ)utilidadesTAD.o: $(SRC)$(GROUP)utilidadesTAD.c
-	$(CC) $(CCFLAGS) -o $@ -c $^
-
-$(OBJ)lib.o: $(SRCLIB)lib.c
-	$(CC) $(CCFLAGS) -o $@ -c $^
+$(GROUP)xchat2.o: $(GROUP)xchat2.c
+			$(CC) $(CCLAGS) $(FLAGSC) -c -o $@ $^
 
 clean:
-		rm -f lib/lib.a obj/*.o includes/*.gch $(GROUP).tar.gz $(EXEC)
+		rm -f .o *.gch $(GROUP).tar.gz $(EXEC)
 dox:
 		doxygen Doxyfile
-
 
 tar:
 		@ echo "Comprimiendo el archivo"
