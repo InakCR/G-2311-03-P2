@@ -29,7 +29,7 @@ $(GROUP)xchat2.o: $(GROUP)xchat2.c
 			$(CC) $(CCLAGS) $(FLAGSC) -c -o $@ $^
 
 clean:
-		rm -f .o *.gch $(GROUP).tar.gz $(EXEC)
+		rm -f *.o *.gch $(GROUP).tar.gz $(EXEC)
 dox:
 		doxygen Doxyfile
 
