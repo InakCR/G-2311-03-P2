@@ -104,26 +104,31 @@ void alarma_ping() {
  *
  *<hr>
 */
-/*TODO no se me conceta a metis y no se cual es la funcion a usar*/
 void IRCInterface_ActivateChannelKey(char *channel, char *key) {
 
+  char *command;
   long res;
+
+  if (strcmp(channel, nickC) == 0){
+    printf("No estás en ningún Canal.\n");
+    return;
+  }
+
+  if(strcmp(key, "") == 0){
+    printf("Falta por introducir la Contraseña.\n");
+    IRCInterface_PlaneRegisterOutMessage(
+      "Falta por introducir la Contraseña.\n");
+    return;
+  }
 
   printf("Activando la clave del canal %s a %s...\n", channel, key);
 
-  //res = IRCTAD_Mode(channel, nickC, "+k");
+  res = IRCMsg_Mode(&command, NULL, channel, "+k", key);
 
-	if (res == IRC_OK)
+	if (res == IRC_OK){
+    send(sock, command, strlen(command), 0);
 		printf("Hecho.\n");
-  else if (res = IRCERR_INVALIDCHANNELNAME)
-    printf("Error - IRCERR_INVALIDCHANNELNAME.\n");
-  else if (res = IRCERR_ISNOTOPERATOR)
-    printf("Error - IRCERR_ISNOTOPERATOR.\n");
-  else if (res = IRCERR_NOUSERONCHANNEL)
-    printf("Error - IRCERR_NOUSERONCHANNEL.\n");
-  else
-    printf("Error Indefinido.\n");
-
+  }
 }
 
 /**
@@ -158,26 +163,24 @@ void IRCInterface_ActivateChannelKey(char *channel, char *key) {
  *
  *<hr>
 */
-/*TODO no se me conceta a metis y no se cual es la funcion a usar*/
 void IRCInterface_ActivateExternalMessages(char *channel) {
 
+  char *command;
   long res;
+
+  if (strcmp(channel, nickC) == 0){
+    printf("No estás en ningún Canal.\n");
+    return;
+  }
 
   printf("Activando los mensajes externos del canal %s...\n", channel);
 
-  //res = IRCTAD_Mode(channel, nickC, "+n");
+  res = IRCMsg_Mode(&command, NULL, channel, "+n", NULL);
 
-	if (res == IRC_OK)
+	if (res == IRC_OK){
+    send(sock, command, strlen(command), 0);
 		printf("Hecho.\n");
-  else if (res = IRCERR_INVALIDCHANNELNAME)
-    printf("Error - IRCERR_INVALIDCHANNELNAME.\n");
-  else if (res = IRCERR_ISNOTOPERATOR)
-    printf("Error - IRCERR_ISNOTOPERATOR.\n");
-  else if (res = IRCERR_NOUSERONCHANNEL)
-    printf("Error - IRCERR_NOUSERONCHANNEL.\n");
-  else
-    printf("Error Indefinido.\n");
-
+  }
 }
 
 /**
@@ -209,26 +212,24 @@ void IRCInterface_ActivateExternalMessages(char *channel) {
  *
  *<hr>
 */
-/*TODO no se me conceta a metis y no se cual es la funcion a usar*/
 void IRCInterface_ActivateInvite(char *channel) {
 
+  char *command;
   long res;
+
+  if (strcmp(channel, nickC) == 0){
+    printf("No estás en ningún Canal.\n");
+    return;
+  }
 
   printf("Activando la función invitar del canal %s...\n", channel);
 
-  //res = IRCTAD_Mode(channel, nickC, "+i");
+  res = IRCMsg_Mode(&command, NULL, channel, "+i", NULL);
 
-	if (res == IRC_OK)
+	if (res == IRC_OK){
+    send(sock, command, strlen(command), 0);
 		printf("Hecho.\n");
-  else if (res = IRCERR_INVALIDCHANNELNAME)
-    printf("Error - IRCERR_INVALIDCHANNELNAME.\n");
-  else if (res = IRCERR_ISNOTOPERATOR)
-    printf("Error - IRCERR_ISNOTOPERATOR.\n");
-  else if (res = IRCERR_NOUSERONCHANNEL)
-    printf("Error - IRCERR_NOUSERONCHANNEL.\n");
-  else
-    printf("Error Indefinido.\n");
-
+  }
 }
 
 /**
@@ -260,26 +261,24 @@ void IRCInterface_ActivateInvite(char *channel) {
  *
  *<hr>
 */
-/*TODO no se me conceta a metis y no se cual es la funcion a usar*/
 void IRCInterface_ActivateModerated(char *channel) {
 
+  char *command;
   long res;
+
+  if (strcmp(channel, nickC) == 0){
+    printf("No estás en ningún Canal.\n");
+    return;
+  }
 
   printf("Activando modo moderado del canal %s...\n", channel);
 
-  //res = IRCTAD_Mode(channel, nickC, "+m");
+  res = IRCMsg_Mode(&command, NULL, channel, "+m", NULL);
 
-	if (res == IRC_OK)
+	if (res == IRC_OK){
+    send(sock, command, strlen(command), 0);
 		printf("Hecho.\n");
-  else if (res = IRCERR_INVALIDCHANNELNAME)
-    printf("Error - IRCERR_INVALIDCHANNELNAME.\n");
-  else if (res = IRCERR_ISNOTOPERATOR)
-    printf("Error - IRCERR_ISNOTOPERATOR.\n");
-  else if (res = IRCERR_NOUSERONCHANNEL)
-    printf("Error - IRCERR_NOUSERONCHANNEL.\n");
-  else
-    printf("Error Indefinido.\n");
-
+  }
 }
 
 /**
@@ -316,27 +315,35 @@ void IRCInterface_ActivateModerated(char *channel) {
  *
  *<hr>
 */
-/*TODO no se me conceta a metis y no se cual es la funcion a usar*/
 void IRCInterface_ActivateNicksLimit(char *channel, int limit) {
 
+  char *command, slimit[10];
   long res;
+
+  if (strcmp(channel, nickC) == 0){
+    printf("No estás en ningún Canal.\n");
+    return;
+  }
+
+  if (limit == -1){
+    printf("Falta por introducir el límite de usuarios.\n");
+    return;
+  }
+  else if (limit < 1){
+    printf("El límite ha de mayor o igual que 1.\n");
+    return;
+  }
 
   printf("Activando limite de usuarios en el canal %s a %d...\n", channel,
           limit);
 
-  //res = IRCTAD_Mode(channel, nickC, "+l");
+  sprintf(slimit, "%d", limit);
+  res = IRCMsg_Mode(&command, NULL, channel, "+l", slimit);
 
-	if (res == IRC_OK)
+	if (res == IRC_OK){
+    send(sock, command, strlen(command), 0);
 		printf("Hecho.\n");
-  else if (res = IRCERR_INVALIDCHANNELNAME)
-    printf("Error - IRCERR_INVALIDCHANNELNAME.\n");
-  else if (res = IRCERR_ISNOTOPERATOR)
-    printf("Error - IRCERR_ISNOTOPERATOR.\n");
-  else if (res = IRCERR_NOUSERONCHANNEL)
-    printf("Error - IRCERR_NOUSERONCHANNEL.\n");
-  else
-    printf("Error Indefinido.\n");
-
+  }
 }
 
 /**
@@ -368,26 +375,24 @@ void IRCInterface_ActivateNicksLimit(char *channel, int limit) {
  *
  *<hr>
 */
-
 void IRCInterface_ActivatePrivate(char *channel) {
 
+  char *command;
   long res;
+
+  if (strcmp(channel, nickC) == 0){
+    printf("No estás en ningún Canal.\n");
+    return;
+  }
 
   printf("Activando el modo privado en el canal %s...\n", channel);
 
-  res = IRCTAD_Mode(channel, nickC, "+p");
+  res = IRCMsg_Mode(&command, NULL, channel, "+p", NULL);
 
-	if (res == IRC_OK)
+	if (res == IRC_OK){
+    send(sock, command, strlen(command), 0);
 		printf("Hecho.\n");
-  else if (res = IRCERR_INVALIDCHANNELNAME)
-    printf("Error - IRCERR_INVALIDCHANNELNAME.\n");
-  else if (res = IRCERR_ISNOTOPERATOR)
-    printf("Error - IRCERR_ISNOTOPERATOR.\n");
-  else if (res = IRCERR_NOUSERONCHANNEL)
-    printf("Error - IRCERR_NOUSERONCHANNEL.\n");
-  else
-    printf("Error Indefinido.\n");
-
+  }
 }
 
 /**
@@ -420,27 +425,24 @@ void IRCInterface_ActivatePrivate(char *channel) {
  *
  *<hr>
 */
-
 void IRCInterface_ActivateProtectTopic(char *channel) {
 
+  char *command;
   long res;
+
+  if (strcmp(channel, nickC) == 0){
+    printf("No estás en ningún Canal.\n");
+    return;
+  }
 
   printf("Activando la protección del topico en el canal %s...\n", channel);
 
-  res = IRCTAD_Mode(channel, nickC, "+t");
+  res = IRCMsg_Mode(&command, NULL, channel, "+t", NULL);
 
-	if (res == IRC_OK)
+	if (res == IRC_OK){
+    send(sock, command, strlen(command), 0);
 		printf("Hecho.\n");
-  else if (res = IRCERR_INVALIDCHANNELNAME)
-    printf("Error - IRCERR_INVALIDCHANNELNAME.\n");
-  else if (res = IRCERR_ISNOTOPERATOR)
-    printf("Error - IRCERR_ISNOTOPERATOR.\n");
-  else if (res = IRCERR_NOUSERONCHANNEL)
-    printf("Error - IRCERR_NOUSERONCHANNEL.\n");
-  else
-    printf("Error Indefinido.\n");
-
-
+  }
 }
 
 /**
@@ -472,26 +474,24 @@ void IRCInterface_ActivateProtectTopic(char *channel) {
  *
  *<hr>
 */
-/*TODO no se me conceta a metis y no se cual es la funcion a usar*/
 void IRCInterface_ActivateSecret(char *channel) {
 
+  char *command;
   long res;
+
+  if (strcmp(channel, nickC) == 0){
+    printf("No estás en ningún Canal.\n");
+    return;
+  }
 
   printf("Activando el modo secreto del canal %s...\n", channel);
 
-  //res = IRCTAD_Mode(channel, nickC, "+s");
+  res = IRCMsg_Mode(&command, NULL, channel, "+s", NULL);
 
-	if (res == IRC_OK)
+	if (res == IRC_OK){
+    send(sock, command, strlen(command), 0);
 		printf("Hecho.\n");
-  else if (res = IRCERR_INVALIDCHANNELNAME)
-    printf("Error - IRCERR_INVALIDCHANNELNAME.\n");
-  else if (res = IRCERR_ISNOTOPERATOR)
-    printf("Error - IRCERR_ISNOTOPERATOR.\n");
-  else if (res = IRCERR_NOUSERONCHANNEL)
-    printf("Error - IRCERR_NOUSERONCHANNEL.\n");
-  else
-    printf("Error Indefinido.\n");
-
+  }
 }
 
 /**
@@ -527,28 +527,27 @@ void IRCInterface_ActivateSecret(char *channel) {
  *
  *<hr>
 */
-/*TODO no se me conceta a metis y no se cual es la funcion a usar*/
 void IRCInterface_BanNick(char *channel, char *nick) {
 
+  char *command;
   long res;
+
+  if (strcmp(channel, nickC) == 0){
+    printf("No estás en ningún Canal.\n");
+    return;
+  }
 
   printf("Baneando a %s del canal %s...\n", nick, channel);
 
-  //res = IRCTAD_Mode(channel, nickC, "+n");
+  res = IRCMsg_Mode(&command, NULL, channel, "+n", nick);
 
-	if (res == IRC_OK)
+	if (res == IRC_OK){
+    send(sock, command, strlen(command), 0);
 		printf("Hecho.\n");
-  else if (res = IRCERR_INVALIDCHANNELNAME)
-    printf("Error - IRCERR_INVALIDCHANNELNAME.\n");
-  else if (res = IRCERR_ISNOTOPERATOR)
-    printf("Error - IRCERR_ISNOTOPERATOR.\n");
-  else if (res = IRCERR_NOUSERONCHANNEL)
-    printf("Error - IRCERR_NOUSERONCHANNEL.\n");
-  else
-    printf("Error Indefinido.\n");
-
+  }
 }
 
+/*Simplifica recv()*/
 int recvCommand(int sock, char* command) {
 	return recv(sock, command, 8192, 0);
 }
@@ -697,12 +696,12 @@ long IRCInterface_Connect(char *nick, char *user, char *realname,
   printf("<< CAP LS\n");
   send(sock, "CAP LS\r\n", strlen("CAP LS\r\n"), 0);
 
-  printf("<< Msg_Nick\n");
+  printf("<< NICK\n");
   if (IRCMsg_Nick(&command, NULL, nick, NULL) != IRC_OK)
     return IRCERR_NOCONNECT;
   send(sock, command, strlen(command), 0);
 
-  printf("<< Msg_User\n");
+  printf("<< USER\n");
   if (IRCMsg_User(&command, NULL, user, "w", realname) != IRC_OK)
     return IRCERR_NOCONNECT;
   send(sock, command, strlen(command), 0);
@@ -741,26 +740,25 @@ long IRCInterface_Connect(char *nick, char *user, char *realname,
  *
  *<hr>
 */
-/*TODO no se me conceta a metis y no se cual es la funcion a usar*/
+/*TODO NO FUNCIONA*/
 void IRCInterface_DeactivateChannelKey(char *channel) {
 
+  char *command;
   long res;
 
-  printf("Desactivando la clave del canal %s...\n", channel);
+  if (strcmp(channel, nickC) == 0){
+    printf("No estás en ningún Canal.\n");
+    return;
+  }
 
-  //res = IRCTAD_Mode(channel, nickC, "-k");
+  printf("Desactivando la clave del canal %s... no funciona aún...\n", channel);
 
-	if (res == IRC_OK)
+  res = IRCMsg_Mode(&command, NULL, channel, "-k", NULL);
+
+	if (res == IRC_OK){
+    send(sock, command, strlen(command), 0);
 		printf("Hecho.\n");
-  else if (res = IRCERR_INVALIDCHANNELNAME)
-    printf("Error - IRCERR_INVALIDCHANNELNAME.\n");
-  else if (res = IRCERR_ISNOTOPERATOR)
-    printf("Error - IRCERR_ISNOTOPERATOR.\n");
-  else if (res = IRCERR_NOUSERONCHANNEL)
-    printf("Error - IRCERR_NOUSERONCHANNEL.\n");
-  else
-    printf("Error Indefinido.\n");
-
+  }
 }
 
 /**
@@ -795,26 +793,24 @@ void IRCInterface_DeactivateChannelKey(char *channel) {
  *
  *<hr>
 */
-/*TODO no se me conceta a metis y no se cual es la funcion a usar*/
 void IRCInterface_DeactivateExternalMessages(char *channel) {
 
+  char *command;
   long res;
+
+  if (strcmp(channel, nickC) == 0){
+    printf("No estás en ningún Canal.\n");
+    return;
+  }
 
   printf("Desactivando los mensajes externos del canal %s...\n", channel);
 
-  //res = IRCTAD_Mode(channel, nickC, "-n");
+  res = IRCMsg_Mode(&command, NULL, channel, "-n", NULL);
 
-	if (res == IRC_OK)
+	if (res == IRC_OK){
+    send(sock, command, strlen(command), 0);
 		printf("Hecho.\n");
-  else if (res = IRCERR_INVALIDCHANNELNAME)
-    printf("Error - IRCERR_INVALIDCHANNELNAME.\n");
-  else if (res = IRCERR_ISNOTOPERATOR)
-    printf("Error - IRCERR_ISNOTOPERATOR.\n");
-  else if (res = IRCERR_NOUSERONCHANNEL)
-    printf("Error - IRCERR_NOUSERONCHANNEL.\n");
-  else
-    printf("Error Indefinido.\n");
-
+  }
 }
 
 /**
@@ -846,26 +842,24 @@ void IRCInterface_DeactivateExternalMessages(char *channel) {
  *
  *<hr>
 */
-/*TODO no se me conceta a metis y no se cual es la funcion a usar*/
 void IRCInterface_DeactivateInvite(char *channel) {
 
+  char *command;
   long res;
+
+  if (strcmp(channel, nickC) == 0){
+    printf("No estás en ningún Canal.\n");
+    return;
+  }
 
   printf("Desactivando la función invitar del canal %s...\n", channel);
 
-  //res = IRCTAD_Mode(channel, nickC, "-i");
+  res = IRCMsg_Mode(&command, NULL, channel, "-i", NULL);
 
-	if (res == IRC_OK)
+	if (res == IRC_OK){
+    send(sock, command, strlen(command), 0);
 		printf("Hecho.\n");
-  else if (res = IRCERR_INVALIDCHANNELNAME)
-    printf("Error - IRCERR_INVALIDCHANNELNAME.\n");
-  else if (res = IRCERR_ISNOTOPERATOR)
-    printf("Error - IRCERR_ISNOTOPERATOR.\n");
-  else if (res = IRCERR_NOUSERONCHANNEL)
-    printf("Error - IRCERR_NOUSERONCHANNEL.\n");
-  else
-    printf("Error Indefinido.\n");
-
+  }
 }
 
 /**
@@ -897,26 +891,24 @@ void IRCInterface_DeactivateInvite(char *channel) {
  *
  *<hr>
 */
-/*TODO no se me conceta a metis y no se cual es la funcion a usar*/
 void IRCInterface_DeactivateModerated(char *channel) {
 
+  char *command;
   long res;
+
+  if (strcmp(channel, nickC) == 0){
+    printf("No estás en ningún Canal.\n");
+    return;
+  }
 
   printf("Desactivando modo moderado del canal %s...\n", channel);
 
-  //res = IRCTAD_Mode(channel, nickC, "-m");
+  res = IRCMsg_Mode(&command, NULL, channel, "-m", NULL);
 
-	if (res == IRC_OK)
+	if (res == IRC_OK){
+    send(sock, command, strlen(command), 0);
 		printf("Hecho.\n");
-  else if (res = IRCERR_INVALIDCHANNELNAME)
-    printf("Error - IRCERR_INVALIDCHANNELNAME.\n");
-  else if (res = IRCERR_ISNOTOPERATOR)
-    printf("Error - IRCERR_ISNOTOPERATOR.\n");
-  else if (res = IRCERR_NOUSERONCHANNEL)
-    printf("Error - IRCERR_NOUSERONCHANNEL.\n");
-  else
-    printf("Error Indefinido.\n");
-
+  }
 }
 
 /**
@@ -949,26 +941,24 @@ void IRCInterface_DeactivateModerated(char *channel) {
  *
  *<hr>
 */
-/*TODO no se me conceta a metis y no se cual es la funcion a usar*/
 void IRCInterface_DeactivateNicksLimit(char *channel) {
 
+  char *command;
   long res;
+
+  if (strcmp(channel, nickC) == 0){
+    printf("No estás en ningún Canal.\n");
+    return;
+  }
 
   printf("Desactivando limite de usuarios en el canal %s...\n", channel);
 
-  //res = IRCTAD_Mode(channel, nickC, "-l");
+  res = IRCMsg_Mode(&command, NULL, channel, "-l", NULL);
 
-	if (res == IRC_OK)
+	if (res == IRC_OK){
+    send(sock, command, strlen(command), 0);
 		printf("Hecho.\n");
-  else if (res = IRCERR_INVALIDCHANNELNAME)
-    printf("Error - IRCERR_INVALIDCHANNELNAME.\n");
-  else if (res = IRCERR_ISNOTOPERATOR)
-    printf("Error - IRCERR_ISNOTOPERATOR.\n");
-  else if (res = IRCERR_NOUSERONCHANNEL)
-    printf("Error - IRCERR_NOUSERONCHANNEL.\n");
-  else
-    printf("Error Indefinido.\n");
-
+  }
 }
 
 /**
@@ -1002,26 +992,24 @@ void IRCInterface_DeactivateNicksLimit(char *channel) {
  *
  *<hr>
 */
-/*TODO no se me conceta a metis y no se cual es la funcion a usar NO VA*/
 void IRCInterface_DeactivatePrivate(char *channel) {
 
+  char *command;
   long res;
+
+  if (strcmp(channel, nickC) == 0){
+    printf("No estás en ningún Canal.\n");
+    return;
+  }
 
   printf("Desactivando el modo privado en el canal %s...\n", channel);
 
-  res = IRCTAD_Mode(channel, nickC, "-p");
+  res = IRCMsg_Mode(&command, NULL, channel, "-p", NULL);
 
-	if (res == IRC_OK)
+	if (res == IRC_OK){
+    send(sock, command, strlen(command), 0);
 		printf("Hecho.\n");
-  else if (res = IRCERR_INVALIDCHANNELNAME)
-    printf("Error - IRCERR_INVALIDCHANNELNAME.\n");
-  else if (res = IRCERR_ISNOTOPERATOR)
-    printf("Error - IRCERR_ISNOTOPERATOR.\n");
-  else if (res = IRCERR_NOUSERONCHANNEL)
-    printf("Error - IRCERR_NOUSERONCHANNEL.\n");
-  else
-    printf("Error Indefinido.\n");
-
+  }
 }
 
 /**
@@ -1054,25 +1042,24 @@ void IRCInterface_DeactivatePrivate(char *channel) {
  *
  *<hr>
 */
-/*TODO no se me conceta a metis y no se cual es la funcion a usar*/
 void IRCInterface_DeactivateProtectTopic(char *channel) {
 
+  char *command;
   long res;
+
+  if (strcmp(channel, nickC) == 0){
+    printf("No estás en ningún Canal.\n");
+    return;
+  }
 
   printf("Desactivando la protección del topico en el canal %s...\n", channel);
 
-  res = IRCTAD_Mode (channel, nickC, "-t");
+  res = IRCMsg_Mode(&command, NULL, channel, "-t", NULL);
 
-	if (res == IRC_OK)
+	if (res == IRC_OK){
+    send(sock, command, strlen(command), 0);
 		printf("Hecho.\n");
-  else if (res = IRCERR_INVALIDCHANNELNAME)
-    printf("Error - IRCERR_INVALIDCHANNELNAME.\n");
-  else if (res = IRCERR_ISNOTOPERATOR)
-    printf("Error - IRCERR_ISNOTOPERATOR.\n");
-  else if (res = IRCERR_NOUSERONCHANNEL)
-    printf("Error - IRCERR_NOUSERONCHANNEL.\n");
-  else
-    printf("Error Indefinido.\n");
+  }
 }
 
 /**
@@ -1105,26 +1092,24 @@ void IRCInterface_DeactivateProtectTopic(char *channel) {
  *
  *<hr>
 */
-/*TODO no se me conceta a metis y no se cual es la funcion a usar*/
 void IRCInterface_DeactivateSecret(char *channel) {
 
+  char *command;
   long res;
+
+  if (strcmp(channel, nickC) == 0){
+    printf("No estás en ningún Canal.\n");
+    return;
+  }
 
   printf("Desactivando el modo secreto del canal %s...\n", channel);
 
-  //res = IRCTAD_Mode(channel, nickC, "-s");
+  res = IRCMsg_Mode(&command, NULL, channel, "-s", NULL);
 
-	if (res == IRC_OK)
+	if (res == IRC_OK){
+    send(sock, command, strlen(command), 0);
 		printf("Hecho.\n");
-  else if (res = IRCERR_INVALIDCHANNELNAME)
-    printf("Error - IRCERR_INVALIDCHANNELNAME.\n");
-  else if (res = IRCERR_ISNOTOPERATOR)
-    printf("Error - IRCERR_ISNOTOPERATOR.\n");
-  else if (res = IRCERR_NOUSERONCHANNEL)
-    printf("Error - IRCERR_NOUSERONCHANNEL.\n");
-  else
-    printf("Error Indefinido.\n");
-
+  }
 }
 
 /**
@@ -1162,7 +1147,6 @@ void IRCInterface_DeactivateSecret(char *channel) {
  *
  *<hr>
 */
-
 boolean IRCInterface_DisconnectServer(char *server, int port) {
   printf("Desconectamos del servidor\n");
 
@@ -1339,7 +1323,7 @@ void IRCInterface_GiveVoice(char *channel, char *nick) {}
  *
  *<hr>
 */
-
+/*TODO*/
 void IRCInterface_KickNick(char *channel, char *nick) {}
 
 /**
