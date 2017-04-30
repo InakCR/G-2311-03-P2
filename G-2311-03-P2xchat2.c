@@ -115,6 +115,7 @@ void IRCInterface_ActivateChannelKey(char *channel, char *key) {
     sprintf(msg, "Falta por introducir la Contraseña.\n");
     printf("%s", msg);
     IRCInterface_WriteChannel(channel, NULL, msg);
+    free(msg);
     return;
   }
 
@@ -127,6 +128,9 @@ void IRCInterface_ActivateChannelKey(char *channel, char *key) {
     printf("%s", msg);
     IRCInterface_WriteChannel(channel, "(*)", msg);
   }
+
+  free(command);
+  free(msg);
 }
 
 /**
@@ -742,6 +746,9 @@ void IRCInterface_DeactivateChannelKey(char *channel) {
     printf("%s", msg);
     IRCInterface_WriteChannel(channel, "(*)", msg);
   }
+
+  free(command);
+  //no deja - free(msg);
 }
 
 /**
