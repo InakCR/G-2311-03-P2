@@ -106,18 +106,22 @@ void alarma_ping() {
 */
 void IRCInterface_ActivateChannelKey(char *channel, char *key) {
 
-  char *command;
+  char *command, *msg;
   long res;
 
+  msg = (char*)malloc(sizeof(char) * MAX_LONG_STRC);
+
   if (strcmp(channel, nickC) == 0){
-    printf("No estás en ningún Canal.\n");
+    sprintf(msg, "No estás en ningún Canal.\n");
+    printf("%s", msg);
+    IRCInterface_WriteSystem(nickC, msg);
     return;
   }
 
   if(strcmp(key, "") == 0){
-    printf("Falta por introducir la Contraseña.\n");
-    IRCInterface_PlaneRegisterOutMessage(
-      "Falta por introducir la Contraseña.\n");
+    sprintf(msg, "Falta por introducir la Contraseña.\n");
+    printf("%s", msg);
+    IRCInterface_WriteChannelThread(channel, nickC, msg);
     return;
   }
 
