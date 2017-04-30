@@ -111,27 +111,21 @@ void IRCInterface_ActivateChannelKey(char *channel, char *key) {
 
   msg = (char*)malloc(sizeof(char) * MAX_LONG_STRC);
 
-  if (strcmp(channel, nickC) == 0){
-    sprintf(msg, "No estás en ningún Canal.\n");
-    printf("%s", msg);
-    IRCInterface_WriteSystem(nickC, msg);
-    return;
-  }
-
   if(strcmp(key, "") == 0){
     sprintf(msg, "Falta por introducir la Contraseña.\n");
     printf("%s", msg);
-    IRCInterface_WriteChannelThread(channel, nickC, msg);
+    IRCInterface_WriteChannel(channel, NULL, msg);
     return;
   }
-
-  printf("Activando la clave del canal %s a %s...\n", channel, key);
 
   res = IRCMsg_Mode(&command, NULL, channel, "+k", key);
 
 	if (res == IRC_OK){
     send(sock, command, strlen(command), 0);
-		printf("Hecho.\n");
+    sprintf(msg, "%s ha actualizado la clave del canal a '%s'.\n",
+            nickC, key);
+    printf("%s", msg);
+    IRCInterface_WriteChannel(channel, "(*)", msg);
   }
 }
 
@@ -169,21 +163,19 @@ void IRCInterface_ActivateChannelKey(char *channel, char *key) {
 */
 void IRCInterface_ActivateExternalMessages(char *channel) {
 
-  char *command;
+  char *command, *msg;
   long res;
 
-  if (strcmp(channel, nickC) == 0){
-    printf("No estás en ningún Canal.\n");
-    return;
-  }
-
-  printf("Activando los mensajes externos del canal %s...\n", channel);
+  msg = (char*)malloc(sizeof(char) * MAX_LONG_STRC);
 
   res = IRCMsg_Mode(&command, NULL, channel, "+n", NULL);
 
 	if (res == IRC_OK){
     send(sock, command, strlen(command), 0);
-		printf("Hecho.\n");
+    sprintf(msg, "%s ha activado los mensajes externos del canal.\n",
+            nickC);
+    printf("%s", msg);
+    IRCInterface_WriteChannel(channel, "(*)", msg);
   }
 }
 
@@ -218,21 +210,19 @@ void IRCInterface_ActivateExternalMessages(char *channel) {
 */
 void IRCInterface_ActivateInvite(char *channel) {
 
-  char *command;
+  char *command, *msg;
   long res;
 
-  if (strcmp(channel, nickC) == 0){
-    printf("No estás en ningún Canal.\n");
-    return;
-  }
-
-  printf("Activando la función invitar del canal %s...\n", channel);
+  msg = (char*)malloc(sizeof(char) * MAX_LONG_STRC);
 
   res = IRCMsg_Mode(&command, NULL, channel, "+i", NULL);
 
 	if (res == IRC_OK){
     send(sock, command, strlen(command), 0);
-		printf("Hecho.\n");
+    sprintf(msg, "%s ha activado la función de solo acceso por invitacion al canal.\n",
+            nickC);
+    printf("%s", msg);
+    IRCInterface_WriteChannel(channel, "(*)", msg);
   }
 }
 
@@ -267,21 +257,19 @@ void IRCInterface_ActivateInvite(char *channel) {
 */
 void IRCInterface_ActivateModerated(char *channel) {
 
-  char *command;
+  char *command, *msg;
   long res;
 
-  if (strcmp(channel, nickC) == 0){
-    printf("No estás en ningún Canal.\n");
-    return;
-  }
-
-  printf("Activando modo moderado del canal %s...\n", channel);
+  msg = (char*)malloc(sizeof(char) * MAX_LONG_STRC);
 
   res = IRCMsg_Mode(&command, NULL, channel, "+m", NULL);
 
 	if (res == IRC_OK){
     send(sock, command, strlen(command), 0);
-		printf("Hecho.\n");
+    sprintf(msg, "%s ha activado el modo moderado del canal.\n",
+            nickC);
+    printf("%s", msg);
+    IRCInterface_WriteChannel(channel, "(*)", msg);
   }
 }
 
@@ -321,32 +309,33 @@ void IRCInterface_ActivateModerated(char *channel) {
 */
 void IRCInterface_ActivateNicksLimit(char *channel, int limit) {
 
-  char *command, slimit[10];
+  char *command, slimit[10], *msg;
   long res;
 
-  if (strcmp(channel, nickC) == 0){
-    printf("No estás en ningún Canal.\n");
-    return;
-  }
+  msg = (char*)malloc(sizeof(char) * MAX_LONG_STRC);
 
   if (limit == -1){
-    printf("Falta por introducir el límite de usuarios.\n");
+    sprintf(msg, "Falta por introducir el límite de usuarios..\n");
+    printf("%s", msg);
+    IRCInterface_WriteChannel(channel, "(*)", msg);
     return;
   }
   else if (limit < 1){
-    printf("El límite ha de mayor o igual que 1.\n");
+    sprintf(msg, "El límite ha de mayor o igual que 1.\n");
+    printf("%s", msg);
+    IRCInterface_WriteChannel(channel, "(*)", msg);
     return;
   }
-
-  printf("Activando limite de usuarios en el canal %s a %d...\n", channel,
-          limit);
 
   sprintf(slimit, "%d", limit);
   res = IRCMsg_Mode(&command, NULL, channel, "+l", slimit);
 
 	if (res == IRC_OK){
     send(sock, command, strlen(command), 0);
-		printf("Hecho.\n");
+    sprintf(msg, "%s ha activado el límite de usuarios del canal a %d.\n",
+            nickC, limit);
+    printf("%s", msg);
+    IRCInterface_WriteChannel(channel, "(*)", msg);
   }
 }
 
@@ -381,21 +370,19 @@ void IRCInterface_ActivateNicksLimit(char *channel, int limit) {
 */
 void IRCInterface_ActivatePrivate(char *channel) {
 
-  char *command;
+  char *command, *msg;
   long res;
 
-  if (strcmp(channel, nickC) == 0){
-    printf("No estás en ningún Canal.\n");
-    return;
-  }
-
-  printf("Activando el modo privado en el canal %s...\n", channel);
+  msg = (char*)malloc(sizeof(char) * MAX_LONG_STRC);
 
   res = IRCMsg_Mode(&command, NULL, channel, "+p", NULL);
 
 	if (res == IRC_OK){
     send(sock, command, strlen(command), 0);
-		printf("Hecho.\n");
+    sprintf(msg, "%s ha activado el modo privado del canal.\n",
+            nickC);
+    printf("%s", msg);
+    IRCInterface_WriteChannel(channel, "(*)", msg);
   }
 }
 
@@ -431,21 +418,19 @@ void IRCInterface_ActivatePrivate(char *channel) {
 */
 void IRCInterface_ActivateProtectTopic(char *channel) {
 
-  char *command;
+  char *command, *msg;
   long res;
 
-  if (strcmp(channel, nickC) == 0){
-    printf("No estás en ningún Canal.\n");
-    return;
-  }
-
-  printf("Activando la protección del topico en el canal %s...\n", channel);
+  msg = (char*)malloc(sizeof(char) * MAX_LONG_STRC);
 
   res = IRCMsg_Mode(&command, NULL, channel, "+t", NULL);
 
 	if (res == IRC_OK){
     send(sock, command, strlen(command), 0);
-		printf("Hecho.\n");
+    sprintf(msg, "%s ha activado la protección del tópico del canal.\n",
+            nickC);
+    printf("%s", msg);
+    IRCInterface_WriteChannel(channel, "(*)", msg);
   }
 }
 
@@ -480,21 +465,19 @@ void IRCInterface_ActivateProtectTopic(char *channel) {
 */
 void IRCInterface_ActivateSecret(char *channel) {
 
-  char *command;
+  char *command, *msg;
   long res;
 
-  if (strcmp(channel, nickC) == 0){
-    printf("No estás en ningún Canal.\n");
-    return;
-  }
-
-  printf("Activando el modo secreto del canal %s...\n", channel);
+  msg = (char*)malloc(sizeof(char) * MAX_LONG_STRC);
 
   res = IRCMsg_Mode(&command, NULL, channel, "+s", NULL);
 
 	if (res == IRC_OK){
     send(sock, command, strlen(command), 0);
-		printf("Hecho.\n");
+    sprintf(msg, "%s ha activado el modo secreto del canal.\n",
+            nickC);
+    printf("%s", msg);
+    IRCInterface_WriteChannel(channel, "(*)", msg);
   }
 }
 
@@ -533,21 +516,19 @@ void IRCInterface_ActivateSecret(char *channel) {
 */
 void IRCInterface_BanNick(char *channel, char *nick) {
 
-  char *command;
+  char *command, *msg;
   long res;
 
-  if (strcmp(channel, nickC) == 0){
-    printf("No estás en ningún Canal.\n");
-    return;
-  }
-
-  printf("Baneando a %s del canal %s...\n", nick, channel);
+  msg = (char*)malloc(sizeof(char) * MAX_LONG_STRC);
 
   res = IRCMsg_Mode(&command, NULL, channel, "+n", nick);
 
 	if (res == IRC_OK){
     send(sock, command, strlen(command), 0);
-		printf("Hecho.\n");
+    sprintf(msg, "%s ha baneado a %s.\n",
+            nickC, nick);
+    printf("%s", msg);
+    IRCInterface_WriteChannel(channel, "(*)", msg);
   }
 }
 
@@ -747,21 +728,19 @@ long IRCInterface_Connect(char *nick, char *user, char *realname,
 /*TODO NO FUNCIONA*/
 void IRCInterface_DeactivateChannelKey(char *channel) {
 
-  char *command;
+  char *command, *msg;
   long res;
 
-  if (strcmp(channel, nickC) == 0){
-    printf("No estás en ningún Canal.\n");
-    return;
-  }
-
-  printf("Desactivando la clave del canal %s... no funciona aún...\n", channel);
+  msg = (char*)malloc(sizeof(char) * MAX_LONG_STRC);
 
   res = IRCMsg_Mode(&command, NULL, channel, "-k", NULL);
 
 	if (res == IRC_OK){
     send(sock, command, strlen(command), 0);
-		printf("Hecho.\n");
+    sprintf(msg, "%s ha desactivado la clave del canal (en MANTENIMIENTO...).\n",
+            nickC);
+    printf("%s", msg);
+    IRCInterface_WriteChannel(channel, "(*)", msg);
   }
 }
 
@@ -799,21 +778,19 @@ void IRCInterface_DeactivateChannelKey(char *channel) {
 */
 void IRCInterface_DeactivateExternalMessages(char *channel) {
 
-  char *command;
+  char *command, *msg;
   long res;
 
-  if (strcmp(channel, nickC) == 0){
-    printf("No estás en ningún Canal.\n");
-    return;
-  }
-
-  printf("Desactivando los mensajes externos del canal %s...\n", channel);
+  msg = (char*)malloc(sizeof(char) * MAX_LONG_STRC);
 
   res = IRCMsg_Mode(&command, NULL, channel, "-n", NULL);
 
 	if (res == IRC_OK){
     send(sock, command, strlen(command), 0);
-		printf("Hecho.\n");
+    sprintf(msg, "%s ha desactivado los mensajes externos del canal.\n",
+            nickC);
+    printf("%s", msg);
+    IRCInterface_WriteChannel(channel, "(*)", msg);
   }
 }
 
@@ -848,21 +825,19 @@ void IRCInterface_DeactivateExternalMessages(char *channel) {
 */
 void IRCInterface_DeactivateInvite(char *channel) {
 
-  char *command;
+  char *command, *msg;
   long res;
 
-  if (strcmp(channel, nickC) == 0){
-    printf("No estás en ningún Canal.\n");
-    return;
-  }
-
-  printf("Desactivando la función invitar del canal %s...\n", channel);
+  msg = (char*)malloc(sizeof(char) * MAX_LONG_STRC);
 
   res = IRCMsg_Mode(&command, NULL, channel, "-i", NULL);
 
 	if (res == IRC_OK){
     send(sock, command, strlen(command), 0);
-		printf("Hecho.\n");
+    sprintf(msg, "%s ha desactivado la función de solo por invitación del canal.\n",
+            nickC);
+    printf("%s", msg);
+    IRCInterface_WriteChannel(channel, "(*)", msg);
   }
 }
 
@@ -897,21 +872,19 @@ void IRCInterface_DeactivateInvite(char *channel) {
 */
 void IRCInterface_DeactivateModerated(char *channel) {
 
-  char *command;
+  char *command, *msg;
   long res;
 
-  if (strcmp(channel, nickC) == 0){
-    printf("No estás en ningún Canal.\n");
-    return;
-  }
-
-  printf("Desactivando modo moderado del canal %s...\n", channel);
+  msg = (char*)malloc(sizeof(char) * MAX_LONG_STRC);
 
   res = IRCMsg_Mode(&command, NULL, channel, "-m", NULL);
 
 	if (res == IRC_OK){
     send(sock, command, strlen(command), 0);
-		printf("Hecho.\n");
+    sprintf(msg, "%s ha desactivado el modo moderado del canal.\n",
+            nickC);
+    printf("%s", msg);
+    IRCInterface_WriteChannel(channel, "(*)", msg);
   }
 }
 
@@ -947,21 +920,19 @@ void IRCInterface_DeactivateModerated(char *channel) {
 */
 void IRCInterface_DeactivateNicksLimit(char *channel) {
 
-  char *command;
+  char *command, *msg;
   long res;
 
-  if (strcmp(channel, nickC) == 0){
-    printf("No estás en ningún Canal.\n");
-    return;
-  }
-
-  printf("Desactivando limite de usuarios en el canal %s...\n", channel);
+  msg = (char*)malloc(sizeof(char) * MAX_LONG_STRC);
 
   res = IRCMsg_Mode(&command, NULL, channel, "-l", NULL);
 
 	if (res == IRC_OK){
     send(sock, command, strlen(command), 0);
-		printf("Hecho.\n");
+    sprintf(msg, "%s ha desactivado el límite de usuarios del canal.\n",
+            nickC);
+    printf("%s", msg);
+    IRCInterface_WriteChannel(channel, "(*)", msg);
   }
 }
 
@@ -998,21 +969,19 @@ void IRCInterface_DeactivateNicksLimit(char *channel) {
 */
 void IRCInterface_DeactivatePrivate(char *channel) {
 
-  char *command;
+  char *command, *msg;
   long res;
 
-  if (strcmp(channel, nickC) == 0){
-    printf("No estás en ningún Canal.\n");
-    return;
-  }
-
-  printf("Desactivando el modo privado en el canal %s...\n", channel);
+  msg = (char*)malloc(sizeof(char) * MAX_LONG_STRC);
 
   res = IRCMsg_Mode(&command, NULL, channel, "-p", NULL);
 
 	if (res == IRC_OK){
     send(sock, command, strlen(command), 0);
-		printf("Hecho.\n");
+    sprintf(msg, "%s ha desactivado el modo privado del canal.\n",
+            nickC);
+    printf("%s", msg);
+    IRCInterface_WriteChannel(channel, "(*)", msg);
   }
 }
 
@@ -1048,21 +1017,19 @@ void IRCInterface_DeactivatePrivate(char *channel) {
 */
 void IRCInterface_DeactivateProtectTopic(char *channel) {
 
-  char *command;
+  char *command, *msg;
   long res;
 
-  if (strcmp(channel, nickC) == 0){
-    printf("No estás en ningún Canal.\n");
-    return;
-  }
-
-  printf("Desactivando la protección del topico en el canal %s...\n", channel);
+  msg = (char*)malloc(sizeof(char) * MAX_LONG_STRC);
 
   res = IRCMsg_Mode(&command, NULL, channel, "-t", NULL);
 
 	if (res == IRC_OK){
     send(sock, command, strlen(command), 0);
-		printf("Hecho.\n");
+    sprintf(msg, "%s ha desactivado la protección del tópico del canal.\n",
+            nickC);
+    printf("%s", msg);
+    IRCInterface_WriteChannel(channel, "(*)", msg);
   }
 }
 
@@ -1098,21 +1065,19 @@ void IRCInterface_DeactivateProtectTopic(char *channel) {
 */
 void IRCInterface_DeactivateSecret(char *channel) {
 
-  char *command;
+  char *command, *msg;
   long res;
 
-  if (strcmp(channel, nickC) == 0){
-    printf("No estás en ningún Canal.\n");
-    return;
-  }
-
-  printf("Desactivando el modo secreto del canal %s...\n", channel);
+  msg = (char*)malloc(sizeof(char) * MAX_LONG_STRC);
 
   res = IRCMsg_Mode(&command, NULL, channel, "-s", NULL);
 
 	if (res == IRC_OK){
     send(sock, command, strlen(command), 0);
-		printf("Hecho.\n");
+    sprintf(msg, "%s ha desactivado el modo secreto del canal.\n",
+            nickC);
+    printf("%s", msg);
+    IRCInterface_WriteChannel(channel, "(*)", msg);
   }
 }
 
@@ -1576,7 +1541,7 @@ void IRCInterface_NewCommandText(char *command) {
 
   					printf("Comando PART - OK\n");
 
-  					free(msg);
+  					;
   					free(command1);
   					break;
 
@@ -1645,7 +1610,7 @@ void IRCInterface_NewCommandText(char *command) {
 
   					printf("Comando KICK - OK\n");
 
-  					free(msg);
+  					;
   					free(nick);
   					free(command1);
   					break;
@@ -1795,7 +1760,7 @@ void IRCInterface_NewCommandText(char *command) {
   					printf("Comando UMSG - OK\n");
 
   					free(nickorchannel);
-  					free(msg);
+  					;
   					free(command1);
   					break;
 
@@ -1825,7 +1790,7 @@ void IRCInterface_NewCommandText(char *command) {
   					printf("Comando ULEAVE - OK\n");
 
   					if (msg != NULL)
-  						free(msg);
+  						;
   					free(command1);
   					break;
 
@@ -1882,7 +1847,7 @@ void IRCInterface_NewCommandText(char *command) {
   					printf("Comando UNOTICE - OK\n");
 
   					if (msg != NULL)
-  						free(msg);
+  						;
   					if (nickorchannel != NULL)
   						free(nickorchannel);
   					free(command1);
@@ -1913,7 +1878,7 @@ void IRCInterface_NewCommandText(char *command) {
   					printf("Comando UQUERY - OK\n");
 
   					if (msg != NULL)
-  						free(msg);
+  						;
   					if (nickorchannel != NULL)
   						free(nickorchannel);
   					free(command1);
@@ -2288,7 +2253,7 @@ void comandoARealizar(char *strin, int sock) {
     	free(prefix);
     	free(server);
     	free(server2);
-    	free(msg);
+    	;
 
    		break;
 
@@ -2371,7 +2336,7 @@ void comandoARealizar(char *strin, int sock) {
 		free(prefix);
 		free(nick);
 		free(nick2);
-		free(msg);
+		;
 
    		break;
 
@@ -2391,7 +2356,7 @@ void comandoARealizar(char *strin, int sock) {
 		free(prefix);
 		free(nick);
 		free(name);
-		free(msg);
+		;
 
    		break;
 
@@ -2431,7 +2396,7 @@ void comandoARealizar(char *strin, int sock) {
 		free(prefix);
 		free(nick);
 		free(channel);
-		free(msg);
+		;
 
    		break;
 
@@ -2474,7 +2439,7 @@ void comandoARealizar(char *strin, int sock) {
 		free(nick);
 		free(version);
 		free(server);
-		free(msg);
+		;
 
 		break;
 
@@ -2489,7 +2454,7 @@ void comandoARealizar(char *strin, int sock) {
 
 		free(prefix);
 		free(nick);
-		free(msg);
+		;
 
 		break;
 
@@ -2554,7 +2519,7 @@ void comandoARealizar(char *strin, int sock) {
 
 		free(prefix);
 		free(nick);
-		free(msg);
+		;
 		free(server);
 
 		break;
@@ -2570,7 +2535,7 @@ void comandoARealizar(char *strin, int sock) {
 
 		free(prefix);
 		free(nick);
-		free(msg);
+		;
 
 		break;
 
@@ -2585,7 +2550,7 @@ void comandoARealizar(char *strin, int sock) {
 
 		free(prefix);
 		free(nick);
-		free(msg);
+		;
 
 		break;
 
@@ -2600,7 +2565,7 @@ void comandoARealizar(char *strin, int sock) {
 
 		free(prefix);
 		free(nick);
-		free(msg);
+		;
 		free(servicename);
 
 		break;
@@ -2616,7 +2581,7 @@ void comandoARealizar(char *strin, int sock) {
 
 		free(prefix);
 		free(nick);
-		free(msg);
+		;
 
 
 		break;
@@ -2632,7 +2597,7 @@ void comandoARealizar(char *strin, int sock) {
 
 		free(prefix);
 		free(nick);
-		free(msg);
+		;
 		free(servername);
 		free(versionname);
 
@@ -2649,7 +2614,7 @@ void comandoARealizar(char *strin, int sock) {
 
 		free(prefix);
 		free(nick);
-		free(msg);
+		;
 
 		break;
 
@@ -2717,7 +2682,7 @@ void comandoARealizar(char *strin, int sock) {
 		free(server);
 		free(nick2);
 		free(type);
-		free(msg);
+		;
 		free(realname);
 
 		break;
@@ -2735,7 +2700,7 @@ void comandoARealizar(char *strin, int sock) {
 		free(prefix);
 		free(nick);
 		free(name);
-		free(msg);
+		;
 
 		break;
 
@@ -2751,7 +2716,7 @@ void comandoARealizar(char *strin, int sock) {
 		free(prefix);
 		free(nick);
 		free(channel);
-		free(msg);
+		;
 		break;
 
 	// Mirar el segundo strtok !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -2812,7 +2777,7 @@ void comandoARealizar(char *strin, int sock) {
 		free(nick);
 		free(type);
 		free(channel);
-		free(msg);
+		;
 		break;
 
 	case RPL_AWAY:
@@ -2831,7 +2796,7 @@ void comandoARealizar(char *strin, int sock) {
 		free(prefix);
 		free(nick);
 		free(nick2);
-		free(msg);
+		;
 
 		break;
 
@@ -2846,7 +2811,7 @@ void comandoARealizar(char *strin, int sock) {
 
 		free(prefix);
 		free(nick);
-		free(msg);
+		;
 
 		break;
 
@@ -2861,7 +2826,7 @@ void comandoARealizar(char *strin, int sock) {
 
 		free(prefix);
 		free(nick);
-		free(msg);
+		;
 
 		break;
 
@@ -2892,7 +2857,7 @@ void comandoARealizar(char *strin, int sock) {
 		free(prefix);
 		free(channel);
 		free(key);
-		free(msg);
+		;
 		free(nickname);
 		free(username);
 		free(host);
@@ -2924,7 +2889,7 @@ void comandoARealizar(char *strin, int sock) {
 
 		free(prefix);
 		free(nick);
-		free(msg);
+		;
 		free(nickname);
 		free(username);
 		free(host);
@@ -2970,7 +2935,7 @@ void comandoARealizar(char *strin, int sock) {
 		}*/
 
 		free(prefix);
-		free(msg);
+		;
 		free(nickname);
 		free(username);
 		free(host);
@@ -2999,7 +2964,7 @@ void comandoARealizar(char *strin, int sock) {
 
 		free(prefix);
 		free(msgtarget);
-		free(msg);
+		;
 		free(nickname);
 		free(username);
 		free(host);
@@ -3063,7 +3028,7 @@ void comandoARealizar(char *strin, int sock) {
 
 	  	free(prefix);
 	  	free(channel);
-	  	free(msg);
+	  	;
 	  	free(nickname);
 	  	free(username);
 	  	free(host);
