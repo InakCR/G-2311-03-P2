@@ -571,14 +571,19 @@ void *client() {
     if (recvCommand(sock, command) == -1)
       return NULL;
 
+    /*command se descompone en pipeCommand (comando suelto) y
+    devuelve pipe (resto)*/
     pipe = IRC_UnPipelineCommands(command, &pipeCommand);
+    //printf("TUBERÍA === %s\n", pipe);
 
     while (pipe != NULL) {
 
-      //printf("pipeCommand -> %s\n", pipeCommand);
+      //printf("COMANDO_TUBERÍA -> %s\n", pipeCommand);
+
       comandoARealizar(pipeCommand, sock);
 
-      pipe = IRC_UnPipelineCommands(NULL, &pipeCommand);
+      pipe = IRC_UnPipelineCommands(pipe, &pipeCommand);
+      //printf("TUBERÍA (in while) === %s\n", pipe);
     }
 
     bzero(command, NUM_BYTES);
@@ -1264,7 +1269,7 @@ void IRCInterface_GiveOp(char *channel, char *nick) {
  *
  *<hr>
 */
-
+/*TODO*/
 void IRCInterface_GiveVoice(char *channel, char *nick) {}
 
 /**
@@ -1352,7 +1357,7 @@ void IRCInterface_NewCommandText(char *command) {
   	while (pipe != NULL) {
 
   		printf("Commando a realizar %s - INFO", command);
-  		commandAlRealizar(command);
+  		comanodAlRealizar(command);
   		pipe = IRC_UnPipelineCommands(command, &pipeCommand, pipe);
 
   	}*/
@@ -1374,7 +1379,7 @@ void IRCInterface_NewCommandText(char *command) {
 
   			if (IRCUserParse_Join(command, &channel, &password) == IRC_OK) {
 
-  				printf("Enviando comando JOIN - %s\n", command);
+  				printf("Enviando Comando JOIN.\n");
 
   				if (IRCMsg_Join(&command1, NULL, channel, password, NULL) == IRC_OK) {
 
@@ -1405,10 +1410,8 @@ void IRCInterface_NewCommandText(char *command) {
   		/*--------- QUIT ---------mirar*/
   		case UQUIT:
 
-  			printf("Comando QUIT - OK???\n");
+  			printf("Enviando Comando Quit.\n");
   			if (IRCUserParse_Quit(command, &reason) != IRC_OK) break;
-
-  			printf("QUIT - Enviamos Msg_Quit\n");
 
   			if (reason == NULL)
   				sprintf(msgaux, "Saliendo");
@@ -1417,10 +1420,9 @@ void IRCInterface_NewCommandText(char *command) {
 
   			if (IRCMsg_Quit(&command1, NULL, msgaux) != IRC_OK) break;
 
-  			IRCInterface_PlaneRegisterOutMessage(command1);
+  			IRCInterface_PlaneRegisterInMessage(command1);
   			send(sock, command1, strlen(command1), 0);
 
-  			printf("QUIT - Enviado el mensaje quit\n");
 
   			IRCInterface_WriteSystem("*", "Desconectado ().");
   			IRCInterface_RemoveAllChannels();
@@ -1437,14 +1439,11 @@ void IRCInterface_NewCommandText(char *command) {
 
   			if (IRCUserParse_List(command, &channel, &searchstring) == IRC_OK) {
 
-  				printf("Comando LIST - OK???\n");
+  				printf("Enviando Comando List.\n");
   				if (IRCMsg_List(&command1, NULL, channel, searchstring) == IRC_OK) {
-  					printf("LIST - Enviamos Msg_List\n");
+
   					send(sock, command1, strlen(command1), 0);
-
-  					IRCInterface_PlaneRegisterOutMessage(command1);
-
-  					printf("Comando LIST - OK\n");
+  					IRCInterface_PlaneRegisterInMessage(command1);
 
   					free(channel);
   					free(searchstring);
@@ -1452,82 +1451,76 @@ void IRCInterface_NewCommandText(char *command) {
   					break;
 
   				}
-
   			}
 
   			printf("Comando LIST - ERROR\n");
   			break;
 
   		/*--------- NAMES ---------ERROR*/
+      /*Funciona*/
   		case UNAMES:
-
-  			printf("1.UNAMES---%s\n", command);
 
   			if (IRCUserParse_Names(command, &channel, &targetserver) == IRC_OK) {
 
-  				printf("Comando NAMES - OK???\n");
+					if (IRCMsg_Names(&command1, NULL, channel, targetserver) == IRC_OK) {
 
-  				if (strcmp(IRCInterface_ActiveChannelName(), "System") != 0) {
+            printf("Enviando Comando Names.\n");
 
-  					if (IRCMsg_Names(&command1, NULL, IRCInterface_ActiveChannelName(), targetserver) == IRC_OK) {
-  						printf("NAMES - Enviamos Msg_Names\n");
-  						send(sock, command1, strlen(command1), 0);
+						send(sock, command1, strlen(command1), 0);
+						IRCInterface_PlaneRegisterInMessage(command1);
 
-  						/*if (IRCTADChan_GetNumberOfUsers(channel) < 0)
-  							IRCInterface_WriteSystem(nickC, client_message);*/
+						free(channel);
+						free(targetserver);
+						free(command1);
+						break;
 
-  						IRCInterface_PlaneRegisterOutMessage(command1);
+					}
+        }
+        else {
 
-  						printf("Comando NAMES - OK\n");
+          channel = IRCInterface_ActiveChannelName();
+        }
 
-  						free(channel);
-  						free(targetserver);
-  						free(command1);
-  						break;
+        if (strcmp(channel, "System") != 0) {
 
-  					}
+          if (IRCMsg_Names(&command1, NULL, channel, targetserver) == IRC_OK) {
 
-  				}
+            printf("Enviando Comando Names.\n");
 
+						send(sock, command1, strlen(command1), 0);
+						IRCInterface_PlaneRegisterInMessage(command1);
 
-  			// if (aux == IRCERR_NOSTRING)
-  			} /*else {
+						free(channel);
+						free(targetserver);
+						free(command1);
+						break;
 
-  				printf("Comando NAMES Sin parametro de canal\n");
-  				IRCMsg_RplEndOfNames(&command1, NULL, nickC, NULL);
-  				send(sock, command1, strlen(command1), 0);
+					}
+        }
 
-  				free(command1);
-  				break;
-
-  			}*/
-
-  			printf("2.UNAMES---%s--%s\n", channel, targetserver);
   			printf("Comando NAMES - ERROR\n");
   			break;
 
 
   		/*--------- NICK ---------*/
+      /*TODO Cambia el nick, pero no captamos bien la respuesta del servidor
+      por lo que en el cliente seguimos siendo el old.nick*/
   		case UNICK:
 
   			if (IRCUserParse_Nick(command, &newnick) == IRC_OK) {
 
-  				printf("Comando NICK - OK???\n");
   				if (IRCMsg_Nick(&command1, NULL, NULL, newnick) == IRC_OK) {
 
-  					printf("NICK - Enviamos Msg_Nick\n");
+  					printf("Enviando Comando Nick.\n");
+
   					send(sock, command1, strlen(command1), 0);
-
-  					IRCInterface_PlaneRegisterOutMessage(command1);
-
-  					printf("Comando NICK - OK\n");
+  					IRCInterface_PlaneRegisterInMessage(command1);
 
   					free(newnick);
   					free(command1);
   					break;
 
   				}
-
   			}
 
   			printf("Comando NICK - ERROR\n");
@@ -1535,26 +1528,23 @@ void IRCInterface_NewCommandText(char *command) {
 
 
   		/*--------- PART ---------*/
+      /*TODO Sale, pero no captamos bien la respuesta del servidor*/
   		case UPART:
 
   			if (IRCUserParse_Part(command, &msg) == IRC_OK) {
 
-  				printf("Comando PART - OK???\n");
   				if (IRCMsg_Part(&command1, NULL, IRCInterface_ActiveChannelName(), msg) == IRC_OK) {
 
-  					printf("PART - Enviamos Msg_Part\n");
+  					printf("Enviando Comando Part.\n");
+
   					send(sock, command1, strlen(command1), 0);
+  					IRCInterface_PlaneRegisterInMessage(command1);
 
-  					IRCInterface_PlaneRegisterOutMessage(command1);
-
-  					printf("Comando PART - OK\n");
-
-  					;
+  					free(msg);
   					free(command1);
   					break;
 
   				}
-
   			}
 
   			printf("Comando PART - ERROR\n");
@@ -1562,32 +1552,22 @@ void IRCInterface_NewCommandText(char *command) {
 
 
   		/*--------- AWAY ---------*/
+      /*TODO Ausente, pero no captamos bien la respuesta del servidor*/
   		case UAWAY:
 
   			if (IRCUserParse_Away(command, &reason) == IRC_OK) {
-
-  				printf("Comando AWAY - OK???\n");
-  				printf("Comando AWAY - %s\n", reason);
 
   				if (reason == NULL)
   					sprintf(msgaux, "Estoy ocupado");
   				else
   					sprintf(msgaux, "%s", reason);
 
-  				//if (strcmp(reason, "(null)") == 0)
-  					//
-  					//printf("EI");
-  				//else
-  					//sprintf(msgaux, "%s", reason);
-
   				if (IRCMsg_Away(&command1, NULL, msgaux) == IRC_OK) {
 
-  					printf("AWAY - Enviamos Msg_Away\n");
+            printf("Enviando Comando Away.\n");
+
   					send(sock, command1, strlen(command1), 0);
-
-  					IRCInterface_PlaneRegisterOutMessage(command1);
-
-  					printf("Comando AWAY - OK\n");
+  					IRCInterface_PlaneRegisterInMessage(command1);
 
   					free(reason);
   					free(command1);
@@ -1601,50 +1581,42 @@ void IRCInterface_NewCommandText(char *command) {
   			break;
 
   		/*--------- KICK ---------*/
+      /*TODO Expulsa, pero no captamos bien la respuesta del servidor*/
   		case UKICK:
 
   			if (IRCUserParse_Kick(command, &nick, &msg) == IRC_OK) {
 
-  				printf("Comando KICK - OK???\n");
   				if (IRCMsg_Kick(&command1, NULL, IRCInterface_ActiveChannelName(), nick, msg) == IRC_OK) {
 
-  					printf("KICK - Enviamos Msg_Kick\n");
+  					printf("Enviando Comando Kick\n");
+
   					send(sock, command1, strlen(command1), 0);
+  					IRCInterface_PlaneRegisterInMessage(command1);
 
-  					//if (IRCTADChan_GetNumberOfUsers(channel) < 0)
-  						//IRCInterface_WriteSystem(nickC, client_message);
-
-  					IRCInterface_PlaneRegisterOutMessage(command1);
-
-  					printf("Comando KICK - OK\n");
-
-  					;
+  					free(msg);
   					free(nick);
   					free(command1);
   					break;
 
   				}
-
   			}
 
   			printf("Comando KICK - ERROR\n");
   			break;
 
   		/*--------- TOPIC ---------*/
+      /*TODO bien, pero no captamos bien la respuesta del servidor*/
   		case UTOPIC:
 
   			if (IRCUserParse_Topic(command, &topic) == IRC_OK) {
 
-  				printf("<< TOPIC\n");
-
   				if (IRCMsg_Topic(&command1, NULL, IRCInterface_ActiveChannelName(),
               topic) == IRC_OK) {
 
+                printf("Enviando Comando Topic.\n");
+
   					send(sock, command1, strlen(command1), 0);
-
-  					IRCInterface_PlaneRegisterOutMessage(command1);
-
-  					printf("Comando TOPIC - OK\n");
+  					IRCInterface_PlaneRegisterInMessage(command1);
 
   					free(topic);
   					free(command1);
@@ -1656,23 +1628,20 @@ void IRCInterface_NewCommandText(char *command) {
   			printf("Comando TOPIC - ERROR\n");
   			break;
 
-  		/*--------- ULUSERS ---------faltaaaaaaaa*/
+  		/*--------- ULUSERS ---------*/
+      /*TODO error*/
   		case ULUSERS:
 
   			if (IRCUserParse_Lusers(command, &server) == IRC_OK) {
 
-  				printf("Comando ULUSERS - OK???\n");
+          printf("Aqui no llega.\n");
+
   				if (IRCMsg_Lusers(&command1, NULL, NULL, NULL) == IRC_OK) {
 
-  					printf("ULUSERS - Enviamos Msg_Lusers\n");
+  					printf("Enviando Comando Lusers.\n");
+
   					send(sock, command1, strlen(command1), 0);
-
-  					//if (IRCTADChan_GetNumberOfUsers(channel) < 0)
-  						//IRCInterface_WriteSystem(nickC, client_message);
-
-  					IRCInterface_PlaneRegisterOutMessage(command1);
-
-  					printf("Comando ULUSERS - OK\n");
+  					IRCInterface_PlaneRegisterInMessage(command1);
 
   					if (server != NULL)
   						free(server);
@@ -1680,71 +1649,61 @@ void IRCInterface_NewCommandText(char *command) {
   					break;
 
   				}
-
   			}
 
   			printf("Comando ULUSERS - ERROR\n");
   			break;
 
   		/*--------- UWHO ---------*/
+      /*TODO bien, habría que cambiar como se interpreta el mensaje de vuelta*/
   		case UWHO:
 
   			if (IRCUserParse_Who(command, &mask) == IRC_OK) {
 
-  				printf("Comando UWHO - OK???\n");
   				if (IRCMsg_Who(&command1, NULL, mask, NULL) == IRC_OK) {
 
-  					printf("UWHO - Enviamos Msg_Who\n");
+  					printf("Enviando Comando Who.\n");
+
   					send(sock, command1, strlen(command1), 0);
-
-  					//if (IRCTADChan_GetNumberOfUsers(channel) < 0)
-  						//IRCInterface_WriteSystem(nickC, client_message);
-
-  					IRCInterface_PlaneRegisterOutMessage(command1);
-
-  					printf("Comando UWHO - OK\n");
+  					IRCInterface_PlaneRegisterInMessage(command1);
 
   					free(mask);
   					free(command1);
   					break;
 
   				}
-
   			}
 
   			printf("Comando UWHO - ERROR\n");
   			break;
 
-  		/*--------- MOTD ---------errooooooooor*/
+  		/*--------- MOTD ---------*/
+      /*TODO probar, pide el mensaje de inicio del server ERROR*/
   		case UMOTD:
 
   			if (IRCUserParse_Motd(command, &server) == IRC_OK) {
 
-  				printf("Comando MOTD - OK???\n");
+          printf("Aqui no llega.\n");
+
   				if (IRCMsg_Motd(&command1, NULL, server) == IRC_OK) {
 
-  					printf("MOTD - Enviamos Msg_Who\n");
+  					printf("Enviando Comando Motd.\n");
+
   					send(sock, command1, strlen(command1), 0);
-
-  					//if (IRCTADChan_GetNumberOfUsers(channel) < 0)
-  						//IRCInterface_WriteSystem(nickC, client_message);
-
-  					IRCInterface_PlaneRegisterOutMessage(command1);
-
-  					printf("Comando MOTD - OK\n");
+  					IRCInterface_PlaneRegisterInMessage(command1);
 
   					free(server);
   					free(command1);
   					break;
 
   				}
-
   			}
 
   			printf("Comando MOTD - ERROR\n");
   			break;
 
   		/*--------- UMSG ---------*/
+      /*TODO como todos los anteriores no recibe bien del server*/
   		case UMSG:
 
   			if (IRCUserParse_Msg(command, &nickorchannel, &msg) == IRC_OK) {
@@ -1755,28 +1714,27 @@ void IRCInterface_NewCommandText(char *command) {
 
   					printf("UMSG - Enviamos Msg_Privmsg\n");
   					send(sock, command1, strlen(command1), 0);
+  					IRCInterface_PlaneRegisterInMessage(command1);
 
-  					//if (IRCTADChan_GetNumberOfUsers(channel) < 0)
-  						//IRCInterface_WriteSystem(nickC, client_message);
 
-  					IRCInterface_PlaneRegisterOutMessage(command1);
+            //TODO Añadir nuevo canal si no existe!!
   					IRCInterface_WriteChannel(nickorchannel, nickC, msg);
 
   					printf("Comando UMSG - OK\n");
 
   					free(nickorchannel);
-  					;
+  					free(msg);
   					free(command1);
   					break;
 
   				}
-
   			}
 
   			printf("Comando UMSG - ERROR\n");
   			break;
 
   		/*--------- ULEAVE ---------mirar*/
+      /*TODO este no entiendo como va*/
   		case ULEAVE:
 
   			if (IRCUserParse_Leave(command, &msg) == IRC_OK) {
@@ -1790,12 +1748,12 @@ void IRCInterface_NewCommandText(char *command) {
   					//if (IRCTADChan_GetNumberOfUsers(channel) < 0)
   						//IRCInterface_WriteSystem(nickC, client_message);
   					IRCInterface_DeleteNickChannel(IRCInterface_ActiveChannelName(), nickC);
-  					IRCInterface_PlaneRegisterOutMessage(command1);
+  					IRCInterface_PlaneRegisterInMessage(command1);
 
   					printf("Comando ULEAVE - OK\n");
 
   					if (msg != NULL)
-  						;
+  						free(msg);
   					free(command1);
   					break;
 
@@ -1807,21 +1765,16 @@ void IRCInterface_NewCommandText(char *command) {
   			break;
 
   		/*--------- UWHOIS ---------*/
+      /*TODO algo pilla*/
   		case UWHOIS:
 
   			if (IRCUserParse_Whois(command, &nick) == IRC_OK) {
-
-  				printf("Comando UWHOIS - OK???\n");
   				if (IRCMsg_Whois(&command1, NULL, nick, nick) == IRC_OK) {
 
-  					printf("UWHOIS - Enviamos Msg_Whois\n");
+  					printf("Enviando Comando Whois.\n");
+
   					send(sock, command1, strlen(command1), 0);
-
-  					//if (IRCTADChan_GetNumberOfUsers(channel) < 0)
-  						//IRCInterface_WriteSystem(nickC, client_message);
-  					IRCInterface_PlaneRegisterOutMessage(command1);
-
-  					printf("Comando UWHOIS - OK\n");
+  					IRCInterface_PlaneRegisterInMessage(command1);
 
   					free(nick);
   					free(command1);
@@ -1834,7 +1787,8 @@ void IRCInterface_NewCommandText(char *command) {
   			printf("Comando UWHOIS - ERROR\n");
   			break;
 
-  		/*--------- UNOTICE ---------mirar*/
+  		/*--------- UNOTICE ---------*/
+      /*TODO a partir de aqui nada aun*/
   		case UNOTICE:
 
   			if (IRCUserParse_Notice(command, &nickorchannel, &msg) == IRC_OK) {
@@ -2263,17 +2217,19 @@ void comandoARealizar(char *string, int sock) {
 
    		  break;
 
+    /*-------------WHOIS-------------*/
+    /*Hecho*/
    	case RPL_WHOISUSER:
 
    		IRCParse_RplWhoIsUser(string, &prefix, &nick, &nick2, &name, &host,
                             &realname);
 
-   		printf("1.RplWhoIsUser\n");
+   		printf("Respuesta del Servidor a Whois (User).\n");
 
-		  sprintf(msgaux, "[%s] (%s): %s", nick2, host, nick2);
+		  sprintf(msgaux, "[%s] (%s%s): %s", nick2, name, host, realname);
 
+		  IRCInterface_PlaneRegisterOutMessageThread(string);
    		IRCInterface_WriteSystemThread("*", msgaux);
-		  IRCInterface_PlaneRegisterInMessageThread(string);
 
   		free(prefix);
   		free(nick);
@@ -2284,6 +2240,7 @@ void comandoARealizar(char *string, int sock) {
 
    		break;
 
+    /*Hecho*/
    	case  RPL_WHOISSERVER:
 
    		IRCParse_RplWhoIsServer(string, &prefix, &nick, &nick2, &server,
@@ -2291,7 +2248,7 @@ void comandoARealizar(char *string, int sock) {
 
    		printf("1.RplWhoIsServer\n");
 
-   		sprintf(msgaux, "[%s] %s %s", nick2, server, serverinfo);
+   		sprintf(msgaux, "[%s] :%s %s", nick2, server, serverinfo);
 
    		IRCInterface_WriteSystemThread("*", msgaux);
 		  IRCInterface_PlaneRegisterInMessageThread(string);
@@ -2304,6 +2261,7 @@ void comandoARealizar(char *string, int sock) {
 
    		break;
 
+    /*Hecho*/
    	case RPL_WHOISCHANNELS:
 
    		IRCParse_RplWhoIsChannels(string, &prefix, &nick, &nick2, &chanelstr);
@@ -2322,6 +2280,7 @@ void comandoARealizar(char *string, int sock) {
 
    		break;
 
+    /*Hecho*/
    	case RPL_WHOISIDLE:
 
    		IRCParse_RplWhoIsIdle(string, &prefix, &nick, &nick2, &secs_idle,
@@ -2362,19 +2321,19 @@ void comandoARealizar(char *string, int sock) {
 
    		break;
 
-    /*TODO*/
+    /*FIN-------------WHOIS-------------*/
+
+    /*TODO No funciona*/
    	case RPL_NOTOPIC:
 
    		IRCParse_RplNoTopic(string, &prefix, &nick, &channel, &topic);
 
 		  printf("1.RplNoTopic\n");
 
-  		//sprintf(msgaux, "El topic para %s es %s", channel, msg);
+  		sprintf(msgaux, "[%s] no hay tema en el canal.", channel);
 
-  		//printf("69.--%s--%s--%s--%s--msgaux(%s)\n", prefix, nick, channel, msg, msgaux);
-
-  		IRCInterface_PlaneRegisterInMessageThread(string);
-  		//IRCInterface_WriteChannelThread(channel, NULL, msgaux);
+  		IRCInterface_PlaneRegisterOutMessageThread(string);
+      IRCInterface_WriteChannelThread(channel, NULL, msgaux);
 
   		free(prefix);
   		free(nick);
@@ -2383,16 +2342,14 @@ void comandoARealizar(char *string, int sock) {
 
    		break;
 
+    /*TODO No funciona*/
    	case RPL_TOPIC:
 
    		IRCParse_RplTopic(string, &prefix, &nick, &channel, &msg);
 
   		printf("1.RPL_TOPIC.\n");
 
-  		sprintf(msgaux, "El topic para %s es %s", channel, msg);
-
-      /*TODO*/
-  		printf("69.--%s--%s--%s--%s--msgaux(%s)\n", prefix, nick, channel, msg, msgaux);
+  		sprintf(msgaux, "Tema para %s es %s.", channel, msg);
 
   		IRCInterface_PlaneRegisterInMessageThread(string);
   		IRCInterface_WriteChannelThread(channel, NULL, msgaux);
@@ -2404,6 +2361,7 @@ void comandoARealizar(char *string, int sock) {
 
    		break;
 
+  /*TODO no funciona*/
 	case TOPIC:
 
   		printf("TOPIC\n");
@@ -2430,6 +2388,7 @@ void comandoARealizar(char *string, int sock) {
 
 	   	break;
 
+  /*Hecho*/
 	case RPL_VERSION:
 
 		IRCParse_RplVersion(string, &prefix, &nick, &version, &server, &msg);
@@ -2437,17 +2396,17 @@ void comandoARealizar(char *string, int sock) {
 		printf("1.RplVersion");
 
 		IRCInterface_PlaneRegisterInMessageThread(string);
-		IRCInterface_WriteSystemThread(NULL, string);
+		IRCInterface_WriteSystemThread("*", msg);
 
 		free(prefix);
 		free(nick);
 		free(version);
 		free(server);
-		;
+		free(msg);
 
 		break;
 
-  /*Bien*/
+  /*HECHO*/
 	case RPL_WELCOME:
 
 		IRCParse_RplWelcome(string, &prefix, &nick, &msg);
@@ -2455,7 +2414,7 @@ void comandoARealizar(char *string, int sock) {
 		printf("1.RPL_WELCOME");
 
 		IRCInterface_PlaneRegisterOutMessageThread(string);
-		IRCInterface_WriteSystemThread(NULL, msg);
+		IRCInterface_WriteSystemThread("*", msg);
 
 		free(prefix);
 		free(nick);
@@ -2463,14 +2422,19 @@ void comandoARealizar(char *string, int sock) {
 
 		break;
 
+  /*HECHO*/
 	case RPL_MYINFO:
 
-		IRCParse_RplMyInfo(string, &prefix, &nick, &servername, &version, &availableusermodes, &availablechannelmodes, &addedg);
+		IRCParse_RplMyInfo(string, &prefix, &nick, &servername, &version,
+                        &availableusermodes, &availablechannelmodes, &addedg);
 
 		printf("1.RplMyInfo");
 
-		IRCInterface_PlaneRegisterInMessageThread(string);
-		IRCInterface_WriteSystemThread(NULL, string);
+    sprintf(msgaux, "%s %s %s %s %s", servername, version,
+            availableusermodes, availablechannelmodes, addedg);
+
+		IRCInterface_PlaneRegisterOutMessageThread(string);
+		IRCInterface_WriteSystemThread("*", msgaux);
 
 		free(prefix);
 		free(nick);
@@ -2482,13 +2446,14 @@ void comandoARealizar(char *string, int sock) {
 
 		break;
 
+  /*TODO*/
 	case RPL_STATSOLINE:
 
 		IRCParse_RplStatsOLine(string, &prefix, &nick, &hostmask, &name);
 
-		printf("1.RplStatsOLine");
+		printf("!!!!!!!!!1.RplStatsOLine");
 
-		IRCInterface_PlaneRegisterInMessageThread(string);
+		IRCInterface_PlaneRegisterOutMessageThread(string);
 		IRCInterface_WriteSystemThread(NULL, string);
 
 		free(prefix);
@@ -2498,13 +2463,15 @@ void comandoARealizar(char *string, int sock) {
 
 		break;
 
+  /*TODO*/
 	case RPL_STATSLINKINFO:
 
-		IRCParse_RplStatsLinkInfo(string, &prefix, &nick, &linkname, &sendq, &sentmessages, &sentKB, &recmessages, &recKB, &timeopen);
+		IRCParse_RplStatsLinkInfo(string, &prefix, &nick, &linkname, &sendq,
+                  &sentmessages, &sentKB, &recmessages, &recKB, &timeopen);
 
-		printf("1.RplMotdStart");
+		printf("!!!!!!!!!!1.RPL_STATSLINKINFO");
 
-		IRCInterface_PlaneRegisterInMessageThread(string);
+		IRCInterface_PlaneRegisterOutMessageThread(string);
 		IRCInterface_WriteSystemThread(NULL, string);
 
 		free(prefix);
@@ -2513,22 +2480,26 @@ void comandoARealizar(char *string, int sock) {
 
 		break;
 
+  /*HECHO*/
 	case RPL_MOTDSTART:
 
 		IRCParse_RplMotdStart(string, &prefix, &nick, &msg, &server);
 
 		printf("1.RplMotdStart");
 
-		IRCInterface_PlaneRegisterInMessageThread(string);
-		IRCInterface_WriteSystemThread(NULL, string);
+		IRCInterface_PlaneRegisterOutMessageThread(string);
+		IRCInterface_WriteSystemThread("*", msg);
+
+    //- irc.eps.net message of the day
 
 		free(prefix);
 		free(nick);
-		;
+		free(msg);
 		free(server);
 
 		break;
 
+  /*HECHO*/
 	case RPL_LUSERCLIENT:
 
 		IRCParse_RplLuserClient(string, &prefix, &nick, &msg, &nusers, &ninvisibles, &nservers);
@@ -2536,14 +2507,15 @@ void comandoARealizar(char *string, int sock) {
 		printf("1.RplLuserClient");
 
 		IRCInterface_PlaneRegisterInMessageThread(string);
-		IRCInterface_WriteSystemThread(NULL, string);
+		IRCInterface_WriteSystemThread("*", msg);
 
 		free(prefix);
 		free(nick);
-		;
+		free(msg);
 
 		break;
 
+  /*Hecho*/
 	case RPL_MOTD:
 
 		IRCParse_RplMotd(string, &prefix, &nick, &msg);
@@ -2551,14 +2523,15 @@ void comandoARealizar(char *string, int sock) {
 		printf("1.RplMotd");
 
 		IRCInterface_PlaneRegisterInMessageThread(string);
-		IRCInterface_WriteSystemThread(NULL, string);
+		IRCInterface_WriteSystemThread("*", msg);
 
 		free(prefix);
 		free(nick);
-		;
+		free(msg);
 
 		break;
 
+  /*TODO*/
 	case RPL_YOURESERVICE:
 
 		IRCParse_RplYoureService(string, &prefix, &nick, &msg, &servicename);
@@ -2570,11 +2543,12 @@ void comandoARealizar(char *string, int sock) {
 
 		free(prefix);
 		free(nick);
-		;
+		free(msg);
 		free(servicename);
 
 		break;
 
+  /*HECHO*/
 	case RPL_ENDOFMOTD:
 
 		IRCParse_RplEndOfMotd(string, &prefix, &nick, &msg);
@@ -2582,55 +2556,62 @@ void comandoARealizar(char *string, int sock) {
 		printf("1.RplEndOfMotd");
 
 		IRCInterface_PlaneRegisterInMessageThread(string);
-		IRCInterface_WriteSystemThread(NULL, string);
+		IRCInterface_WriteSystemThread("*", msg);
 
 		free(prefix);
 		free(nick);
-		;
-
+		free(msg);
 
 		break;
 
+  /*HECHO*/
 	case RPL_YOURHOST:
 
 		IRCParse_RplYourHost(string, &prefix, &nick, &msg, &servername, &versionname);
 
 		printf("1.RplYourHost");
 
-		IRCInterface_PlaneRegisterInMessageThread(string);
-		IRCInterface_WriteSystemThread(NULL, string);
+		IRCInterface_PlaneRegisterOutMessageThread(string);
+		IRCInterface_WriteSystemThread("*", msg);
 
 		free(prefix);
 		free(nick);
-		;
+		free(msg);
 		free(servername);
 		free(versionname);
 
 		break;
 
+  /*TODO*/
 	case RPL_LISTEND:
 
 		IRCParse_RplListEnd(string, &prefix, &nick, &msg);
 
-		printf("1.RplListEnd");
+		printf("!!!!!!!!!1.RplListEnd");
 
 		IRCInterface_PlaneRegisterInMessageThread(string);
-		IRCInterface_WriteSystemThread(NULL, string);
+		IRCInterface_WriteSystemThread(NULL, msg);
 
 		free(prefix);
 		free(nick);
-		;
+		free(msg);
 
 		break;
 
+  /*Hecho*/
 	case RPL_LIST:
 
 		IRCParse_RplList(string, &prefix, &nick, &channel, &visible, &topic);
 
 		printf("1.RplList");
 
-		IRCInterface_PlaneRegisterInMessageThread(string);
-		IRCInterface_WriteSystemThread(NULL, string);
+    if (topic != NULL)
+      sprintf(msgaux, "%s\t%s\t%s", channel, visible, topic);
+    else
+      sprintf(msgaux, "%s\t%s", channel, visible);
+
+		IRCInterface_PlaneRegisterOutMessageThread(string);
+		IRCInterface_WriteSystemThread(NULL, msgaux);
 
 		free(prefix);
 		free(nick);
@@ -2640,6 +2621,7 @@ void comandoARealizar(char *string, int sock) {
 
 		break;
 
+  /*Hecho*/
 	case RPL_CHANNELMODEIS:
 
 		IRCParse_RplChannelModeIs(string, &prefix, &nick, &channel, &modetxt);
@@ -2655,12 +2637,12 @@ void comandoARealizar(char *string, int sock) {
 
 		break;
 
-	//De momento no es necesario
+	/*TODO*/
 	case RPL_UMODEIS:
 
 		IRCParse_RplUModeIs(string, &prefix, &nick, &usermodestring);
 
-		printf("1.RplUModeIs");
+		printf("!!!!!!1.RplUModeIs");
 
 		IRCInterface_PlaneRegisterInMessageThread(string);
 
@@ -2670,14 +2652,18 @@ void comandoARealizar(char *string, int sock) {
 
 		break;
 
+  /*Hecho*/
 	case RPL_WHOREPLY:
 
-		IRCParse_RplWhoReply(string, &prefix, &nick, &channel, &user, &host, &server, &nick2, &type, &msg, &hopcount, &realname);
+		IRCParse_RplWhoReply(string, &prefix, &nick, &channel, &user, &host,
+                          &server, &nick2, &type, &msg, &hopcount, &realname);
 
 		printf("1.RplWhoReply");
 
-		IRCInterface_PlaneRegisterInMessageThread(string);
-		IRCInterface_WriteSystemThread(NULL, string);
+    sprintf(msgaux, "%s %s %s %s", user, host, server, realname);
+
+		IRCInterface_PlaneRegisterOutMessageThread(string);
+		IRCInterface_WriteSystemThread(NULL, msgaux);
 
 		free(prefix);
 		free(nick);
@@ -2692,12 +2678,12 @@ void comandoARealizar(char *string, int sock) {
 
 		break;
 
-
+  /*TODO*/
 	case RPL_ENDOFWHO:
 
 		IRCParse_RplEndOfWho(string, &prefix, &nick, &name, &msg);
 
-		printf("1.RplEndOfWho----%s--%s--%s--%s\n", prefix, nick, name, msg);
+		printf("!!!!!!!1.RplEndOfWho----%s--%s--%s--%s\n", prefix, nick, name, msg);
 
 		IRCInterface_PlaneRegisterInMessageThread(string);
 		IRCInterface_WriteSystemThread(NULL, string);
@@ -2709,11 +2695,12 @@ void comandoARealizar(char *string, int sock) {
 
 		break;
 
+  /*TODO*/
 	case RPL_ENDOFNAMES:
 
 		IRCParse_RplEndOfNames(string, &prefix, &nick, &channel, &msg);
 
-		printf("1.RplEndOfNames");
+		printf("!!!!!!!!!!1.RplEndOfNames");
 
 		IRCInterface_PlaneRegisterInMessageThread(string);
 		IRCInterface_WriteSystemThread(NULL, string);
@@ -2725,14 +2712,12 @@ void comandoARealizar(char *string, int sock) {
 
 		break;
 
-	// Mirar el segundo strtok !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  /*Hecho*/
 	case RPL_NAMREPLY:
-
-		//char* token;// = (char*)malloc(5192);
 
 		IRCParse_RplNamReply(string, &prefix, &nick, &type, &channel, &msg);
 
-		printf("1.Rpl_namreply----%s--%s--%s--%s--%s\n", prefix, nick, type, channel, msg);
+		printf("1.Rpl_namreply.\n");
 
 		strcpy(msgg, msg);
 
@@ -2740,43 +2725,26 @@ void comandoARealizar(char *string, int sock) {
 
 		while (token != NULL) {
 
-			printf("2.Rpl_namreply---TOKEN?: %s\n", token);
-
 			if (strpbrk(token, "@") == NULL) {
 
-				printf("Rpl_namreply---Annadimos nick NONE\n");
-				IRCInterface_AddNickChannelThread(channel, token, token, token, prefix, NONE);
+				IRCInterface_AddNickChannelThread(channel, token, token, token, prefix,
+                                          NONE);
 
 			// Cuando se trata de un OP
 			} else {
 
-				//strcpy(tokenAux, token);
-				//token1 = strtok(tokenAux, "@");
-				//strcpy(tokenAux, token);
-
 				memmove(token1, token+1, strlen(token)-1);
-				printf("MIRAR AQUI: -------------%s--%s\n", token1, token);
-
-				printf("Rpl_namreply---Annadimos nick OP\n");
-				IRCInterface_AddNickChannelThread(channel, token1, token1, token1, prefix, OPERATOR);
+;
+				IRCInterface_AddNickChannelThread(channel, token1, token1, token1,
+                                          prefix, OPERATOR);
 			}
 
 			token = strtok(NULL, " ");
-
 		}
-
-		/*if (strlen(tokenAux) != 0) {
-
-			token1 = strtok(tokenAux, "@");
-
-			printf("Rpl_namreply---Annadimos nick OP de verdad\n");
-			IRCInterface_AddNickChannelThread(channel, token1, token1, token1, prefix, OPERATOR);
-
-		}*/
 
 		sprintf(msgaux, "Usuarios en %s: %s", channel, msgg);
 
-		IRCInterface_PlaneRegisterInMessageThread(string);
+		IRCInterface_PlaneRegisterOutMessageThread(string);
 		IRCInterface_WriteChannelThread(channel, "*", msgaux);
 
 		free(prefix);
@@ -2787,11 +2755,12 @@ void comandoARealizar(char *string, int sock) {
 
 		break;
 
+  /*TODO*/
 	case RPL_AWAY:
 
 		IRCParse_RplAway(string, &prefix, &nick, &nick2, &msg);
 
-		printf("1.RplAway");
+		printf("!!!!!!!!!1.RplAway");
 
 		IRCInterface_PlaneRegisterInMessageThread(string);
 		IRCInterface_WriteSystemThread(NULL, msg);
@@ -2807,11 +2776,12 @@ void comandoARealizar(char *string, int sock) {
 
 		break;
 
+  /*TODO*/
 	case RPL_NOWAWAY:
 
 		IRCParse_RplNowAway(string, &prefix, &nick, &msg);
 
-		printf(">>>>> 69.RplNowAway");
+		printf("!!!!!!!!.RplNowAway");
 
 		IRCInterface_PlaneRegisterInMessageThread(string);
 		IRCInterface_WriteSystemThread(NULL, msg);
@@ -2822,14 +2792,17 @@ void comandoARealizar(char *string, int sock) {
 
 		break;
 
+  /*Hecho*/
 	case RPL_LUSERCHANNELS:
 
 		IRCParse_RplLuserChannels(string, &prefix, &nick, &nchannels, &msg);
 
-		printf(">>>>> RplLuserChannels");
+		printf("1. RplLuserChannels");
+
+    sprintf(msgaux, "%d :%s", nchannels, msg);
 
 		IRCInterface_PlaneRegisterInMessageThread(string);
-		IRCInterface_WriteSystemThread(NULL, string);
+		IRCInterface_WriteSystemThread("*", msgaux);
 
 		free(prefix);
 		free(nick);
@@ -2837,9 +2810,10 @@ void comandoARealizar(char *string, int sock) {
 
 		break;
 
+  /*TODO falta cuando un usuario se une a un canal*/
 	case JOIN:
 
-		printf("recibido JOIN del servidor\n");
+		printf("Recibido JOIN del servidor\n");
     printf("%s\n", string);
 
 		IRCParse_Join(string, &prefix, &channel, &key, &msg);
@@ -2873,7 +2847,7 @@ void comandoARealizar(char *string, int sock) {
 
 	  break;
 
-	// Me falta que el mensaje de Usted es ahora conocido como se imprima en los canales
+	//TODO Me falta que el mensaje de Usted es ahora conocido como se imprima en los canales
 	case NICK:
 
 		printf("<< NICK\n");
@@ -2972,7 +2946,7 @@ void comandoARealizar(char *string, int sock) {
 
 		free(prefix);
 		free(msgtarget);
-		;
+		free(msg);
 		free(nickname);
 		free(username);
 		free(host);
