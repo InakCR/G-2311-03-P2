@@ -10,6 +10,9 @@
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <unistd.h>
+#include <redes2/ircsound.h>
+#include <errno.h>
+#include <fcntl.h>
 
 #define NUM_BYTES 8192
 #define LOG_NUM 2000
@@ -25,6 +28,7 @@ char *nickC, *userC, *realnameC, *passwordC, serverC;
 int sock, portC;
 boolean sslC;
 int numero = 14606209;
+FILE *faudio = NULL;
 /**
  * @defgroup IRCInterface Interface
  *
@@ -1655,7 +1659,6 @@ void IRCInterface_NewCommandText(char *command) {
   			break;
 
   		/*--------- UWHO ---------*/
-      /*TODO bien, habría que cambiar como se interpreta el mensaje de vuelta*/
   		case UWHO:
 
   			if (IRCUserParse_Who(command, &mask) == IRC_OK) {
@@ -1678,7 +1681,7 @@ void IRCInterface_NewCommandText(char *command) {
   			break;
 
   		/*--------- MOTD ---------*/
-      /*TODO probar, pide el mensaje de inicio del server ERROR*/
+      /*TODO ERROR*/
   		case UMOTD:
 
   			if (IRCUserParse_Motd(command, &server) == IRC_OK) {
@@ -1703,7 +1706,6 @@ void IRCInterface_NewCommandText(char *command) {
   			break;
 
   		/*--------- UMSG ---------*/
-      /*TODO como todos los anteriores no recibe bien del server*/
   		case UMSG:
 
   			if (IRCUserParse_Msg(command, &nickorchannel, &msg) == IRC_OK) {
@@ -1765,7 +1767,6 @@ void IRCInterface_NewCommandText(char *command) {
   			break;
 
   		/*--------- UWHOIS ---------*/
-      /*TODO algo pilla*/
   		case UWHOIS:
 
   			if (IRCUserParse_Whois(command, &nick) == IRC_OK) {
@@ -2051,8 +2052,31 @@ boolean IRCInterface_SendFile(char *filename, char *nick, char *data,
  *
  *<hr>
 */
+/*TODO*/
+boolean IRCInterface_StartAudioChat(char *nick) {
 
-boolean IRCInterface_StartAudioChat(char *nick) { return TRUE; }
+  /*int i = 0;
+  char buf[256];
+
+  IRCSound_RecordFormat(PA_SAMPLE_S16BE,2);
+  IRCSound_PlayFormat(PA_SAMPLE_S16BE,2);
+
+  if(IRCSound_OpenRecord() == IRC_OK){
+
+    printf("Grabando...\n");
+    faudio=fopen("pruebasonido","w+b");
+
+    for(i=0; i < 10000; ++i){
+
+      IRCSound_RecordSound(buf,160);
+      fwrite(buf,1,160,faudio);
+    }*/
+
+    return TRUE;
+  /*}
+
+  return FALSE;*/
+}
 
 /**
  * @ingroup IRCInterfaceCallbacks
@@ -2090,8 +2114,19 @@ boolean IRCInterface_StartAudioChat(char *nick) { return TRUE; }
  *
  *<hr>
 */
+/*TODO*/
+boolean IRCInterface_StopAudioChat(char *nick) {
 
-boolean IRCInterface_StopAudioChat(char *nick) { return TRUE; }
+  /*if(faudio == NULL)
+    return FALSE;
+
+  fclose(faudio);
+  IRCSound_CloseRecord();
+
+  //Enviar a nick
+  */
+  return TRUE;
+}
 
 /**
  * @ingroup IRCInterfaceCallbacks
@@ -2187,12 +2222,16 @@ void comandoARealizar(char *string, int sock) {
     char *serverinfo, *chanelstr, *channeluser, *mode;
 
     char *command = (char*)malloc(sizeof(char)*8192);
-    long numberOfUsers;
+    long numberOfUsers, salida;
     int  hopcount, nusers, ninvisibles, nservers, nchannels, sendq, sentmessages, sentKB, recmessages, recKB, timeopen;
     int secs_idle, signon;
     char msgaux[8000]="", msgg[8000]="", tokenAux[8000]="", token1[2000]="";
 
     printf("\n--- comandoARealizar() [comando realizado por el server]\n\t -> string = %s\n", string);
+
+    salida = IRC_CommandQuery(string);
+
+    printf("SALIDA = %ld\n", salida);
 
     switch(IRC_CommandQuery(string)) {
 
@@ -2932,6 +2971,7 @@ void comandoARealizar(char *string, int sock) {
 	case PRIVMSG:
 
 		printf("<< PRIVMSG\n");
+
 		IRCParse_Privmsg(string, &prefix, &msgtarget, &msg);
 		IRCParse_ComplexUser(prefix, &nickname, &username, &host, &server);
 
