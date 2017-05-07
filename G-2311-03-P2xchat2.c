@@ -11,8 +11,6 @@
 #include <sys/types.h>
 #include <unistd.h>
 #include <redes2/ircsound.h>
-#include <errno.h>
-#include <fcntl.h>
 
 #define NUM_BYTES 8192
 #define LOG_NUM 2000
@@ -577,17 +575,23 @@ void *client() {
 
     /*command se descompone en pipeCommand (comando suelto) y
     devuelve pipe (resto)*/
+    pipeCommand = NULL;
     pipe = IRC_UnPipelineCommands(command, &pipeCommand);
-    //printf("TUBERÍA === %s\n", pipe);
 
+    printf("TUBERÍA === %s\n", pipe);
+    printf("COMANDO_TUBERÍA -> %s\n", pipeCommand);
+
+    /*Un Solo Comando*/
+    if(pipe == NULL)
+      comandoARealizar(pipeCommand, sock);
+
+    /*Muchos Comandos*/
     while (pipe != NULL) {
-
-      //printf("COMANDO_TUBERÍA -> %s\n", pipeCommand);
 
       comandoARealizar(pipeCommand, sock);
 
       pipe = IRC_UnPipelineCommands(pipe, &pipeCommand);
-      //printf("TUBERÍA (in while) === %s\n", pipe);
+      printf("TUBERÍA (in while) === %s\n", pipe);
     }
 
     bzero(command, NUM_BYTES);
@@ -1460,7 +1464,7 @@ void IRCInterface_NewCommandText(char *command) {
   			printf("Comando LIST - ERROR\n");
   			break;
 
-  		/*--------- NAMES ---------ERROR*/
+  		/*--------- NAMES ---------*/
       /*Funciona*/
   		case UNAMES:
 
@@ -1507,8 +1511,7 @@ void IRCInterface_NewCommandText(char *command) {
 
 
   		/*--------- NICK ---------*/
-      /*TODO Cambia el nick, pero no captamos bien la respuesta del servidor
-      por lo que en el cliente seguimos siendo el old.nick*/
+      /*HECHO*/
   		case UNICK:
 
   			if (IRCUserParse_Nick(command, &newnick) == IRC_OK) {
@@ -1532,7 +1535,6 @@ void IRCInterface_NewCommandText(char *command) {
 
 
   		/*--------- PART ---------*/
-      /*TODO Sale, pero no captamos bien la respuesta del servidor*/
   		case UPART:
 
   			if (IRCUserParse_Part(command, &msg) == IRC_OK) {
@@ -1556,7 +1558,6 @@ void IRCInterface_NewCommandText(char *command) {
 
 
   		/*--------- AWAY ---------*/
-      /*TODO Ausente, pero no captamos bien la respuesta del servidor*/
   		case UAWAY:
 
   			if (IRCUserParse_Away(command, &reason) == IRC_OK) {
@@ -1585,7 +1586,6 @@ void IRCInterface_NewCommandText(char *command) {
   			break;
 
   		/*--------- KICK ---------*/
-      /*TODO Expulsa, pero no captamos bien la respuesta del servidor*/
   		case UKICK:
 
   			if (IRCUserParse_Kick(command, &nick, &msg) == IRC_OK) {
@@ -1609,7 +1609,6 @@ void IRCInterface_NewCommandText(char *command) {
   			break;
 
   		/*--------- TOPIC ---------*/
-      /*TODO bien, pero no captamos bien la respuesta del servidor*/
   		case UTOPIC:
 
   			if (IRCUserParse_Topic(command, &topic) == IRC_OK) {
@@ -1710,7 +1709,8 @@ void IRCInterface_NewCommandText(char *command) {
 
   			if (IRCUserParse_Msg(command, &nickorchannel, &msg) == IRC_OK) {
 
-  				printf("Comando UMSG - OK? --%s--%s\n", command, IRCInterface_ActiveChannelName());
+  				printf("Comando UMSG - OK? --%s--%s, %s\n", msg,
+            IRCInterface_ActiveChannelName(), nickorchannel);
 
   				if (IRCMsg_Privmsg(&command1, NULL, nickorchannel, msg) == IRC_OK) {
 
@@ -1718,8 +1718,6 @@ void IRCInterface_NewCommandText(char *command) {
   					send(sock, command1, strlen(command1), 0);
   					IRCInterface_PlaneRegisterInMessage(command1);
 
-
-            //TODO Añadir nuevo canal si no existe!!
   					IRCInterface_WriteChannel(nickorchannel, nickC, msg);
 
   					printf("Comando UMSG - OK\n");
@@ -1789,7 +1787,7 @@ void IRCInterface_NewCommandText(char *command) {
   			break;
 
   		/*--------- UNOTICE ---------*/
-      /*TODO a partir de aqui nada aun*/
+      /*TODO sin respuesta*/
   		case UNOTICE:
 
   			if (IRCUserParse_Notice(command, &nickorchannel, &msg) == IRC_OK) {
@@ -2055,27 +2053,28 @@ boolean IRCInterface_SendFile(char *filename, char *nick, char *data,
 /*TODO*/
 boolean IRCInterface_StartAudioChat(char *nick) {
 
-  /*int i = 0;
+  printf("GRABANDOOOOOOOO\n");
+
+  int i = 0;
   char buf[256];
 
-  IRCSound_RecordFormat(PA_SAMPLE_S16BE,2);
-  IRCSound_PlayFormat(PA_SAMPLE_S16BE,2);
+  IRCSound_RecordFormat(PA_SAMPLE_S16BE, 2);
 
   if(IRCSound_OpenRecord() == IRC_OK){
 
     printf("Grabando...\n");
-    faudio=fopen("pruebasonido","w+b");
+    faudio=fopen("chatVozSonido","w+b");
 
     for(i=0; i < 10000; ++i){
 
       IRCSound_RecordSound(buf,160);
       fwrite(buf,1,160,faudio);
-    }*/
+    }
 
     return TRUE;
-  /*}
+  }
 
-  return FALSE;*/
+  return FALSE;
 }
 
 /**
@@ -2117,14 +2116,16 @@ boolean IRCInterface_StartAudioChat(char *nick) {
 /*TODO*/
 boolean IRCInterface_StopAudioChat(char *nick) {
 
-  /*if(faudio == NULL)
+  if(faudio == NULL)
     return FALSE;
 
   fclose(faudio);
   IRCSound_CloseRecord();
 
   //Enviar a nick
-  */
+
+  printf("Hizo esto\n");
+
   return TRUE;
 }
 
@@ -2342,6 +2343,7 @@ void comandoARealizar(char *string, int sock) {
 
    		break;
 
+    /*TODO Error - No se recibe*/
    	case RPL_ENDOFWHOIS:
 
 		  IRCParse_RplEndOfWhoIs(string, &prefix, &nick, &name, &msg);
@@ -2362,14 +2364,14 @@ void comandoARealizar(char *string, int sock) {
 
     /*FIN-------------WHOIS-------------*/
 
-    /*TODO No funciona*/
+    /*Hecho*/
    	case RPL_NOTOPIC:
 
    		IRCParse_RplNoTopic(string, &prefix, &nick, &channel, &topic);
 
 		  printf("1.RplNoTopic\n");
 
-  		sprintf(msgaux, "[%s] no hay tema en el canal.", channel);
+  		sprintf(msgaux, "%s :No hay tema en el canal", channel);
 
   		IRCInterface_PlaneRegisterOutMessageThread(string);
       IRCInterface_WriteChannelThread(channel, NULL, msgaux);
@@ -2381,17 +2383,20 @@ void comandoARealizar(char *string, int sock) {
 
    		break;
 
-    /*TODO No funciona*/
+    /*Hecho*/
    	case RPL_TOPIC:
 
    		IRCParse_RplTopic(string, &prefix, &nick, &channel, &msg);
 
   		printf("1.RPL_TOPIC.\n");
 
-  		sprintf(msgaux, "Tema para %s es %s.", channel, msg);
+  		sprintf(msgaux, "Tema para %s es: %s", channel, msg);
 
   		IRCInterface_PlaneRegisterInMessageThread(string);
   		IRCInterface_WriteChannelThread(channel, NULL, msgaux);
+
+      sprintf(msgaux, "Tema para %s puesto por %s", channel, nick);
+      IRCInterface_WriteChannelThread(channel, NULL, msgaux);
 
   		free(prefix);
   		free(nick);
@@ -2400,7 +2405,7 @@ void comandoARealizar(char *string, int sock) {
 
    		break;
 
-  /*TODO no funciona*/
+  /*Hecho*/
 	case TOPIC:
 
   		printf("TOPIC\n");
@@ -2411,9 +2416,9 @@ void comandoARealizar(char *string, int sock) {
   		IRCInterface_PlaneRegisterInMessageThread(string);
 
   		if (topic == NULL)
-  			sprintf(msgaux, "%s ha eliminado el topic.", nickname);
+  			sprintf(msgaux, "%s ha eliminado el tema.", nickname);
   		else
-  			sprintf(msgaux, "%s ha cambiado el topic a %s.", nickname, topic);
+  			sprintf(msgaux, "%s ha cambiado el tema a %s.", nickname, topic);
 
   		IRCInterface_WriteChannelThread(channel, NULL, msgaux);
 
@@ -2485,7 +2490,7 @@ void comandoARealizar(char *string, int sock) {
 
 		break;
 
-  /*TODO*/
+  /*TODO??*/
 	case RPL_STATSOLINE:
 
 		IRCParse_RplStatsOLine(string, &prefix, &nick, &hostmask, &name);
@@ -2502,7 +2507,7 @@ void comandoARealizar(char *string, int sock) {
 
 		break;
 
-  /*TODO*/
+  /*TODO??*/
 	case RPL_STATSLINKINFO:
 
 		IRCParse_RplStatsLinkInfo(string, &prefix, &nick, &linkname, &sendq,
@@ -2570,7 +2575,7 @@ void comandoARealizar(char *string, int sock) {
 
 		break;
 
-  /*TODO*/
+  /*TODO??*/
 	case RPL_YOURESERVICE:
 
 		IRCParse_RplYoureService(string, &prefix, &nick, &msg, &servicename);
@@ -2621,7 +2626,7 @@ void comandoARealizar(char *string, int sock) {
 
 		break;
 
-  /*TODO*/
+  /*TODO??*/
 	case RPL_LISTEND:
 
 		IRCParse_RplListEnd(string, &prefix, &nick, &msg);
@@ -2676,7 +2681,7 @@ void comandoARealizar(char *string, int sock) {
 
 		break;
 
-	/*TODO*/
+	/*TODO??*/
 	case RPL_UMODEIS:
 
 		IRCParse_RplUModeIs(string, &prefix, &nick, &usermodestring);
@@ -2717,7 +2722,7 @@ void comandoARealizar(char *string, int sock) {
 
 		break;
 
-  /*TODO*/
+  /*TODO??*/
 	case RPL_ENDOFWHO:
 
 		IRCParse_RplEndOfWho(string, &prefix, &nick, &name, &msg);
@@ -2734,7 +2739,7 @@ void comandoARealizar(char *string, int sock) {
 
 		break;
 
-  /*TODO*/
+  /*TODO??*/
 	case RPL_ENDOFNAMES:
 
 		IRCParse_RplEndOfNames(string, &prefix, &nick, &channel, &msg);
@@ -2773,7 +2778,6 @@ void comandoARealizar(char *string, int sock) {
 			} else {
 
 				memmove(token1, token+1, strlen(token)-1);
-;
 				IRCInterface_AddNickChannelThread(channel, token1, token1, token1,
                                           prefix, OPERATOR);
 			}
@@ -2794,7 +2798,7 @@ void comandoARealizar(char *string, int sock) {
 
 		break;
 
-  /*TODO*/
+  /*TODO??*/
 	case RPL_AWAY:
 
 		IRCParse_RplAway(string, &prefix, &nick, &nick2, &msg);
@@ -2815,7 +2819,7 @@ void comandoARealizar(char *string, int sock) {
 
 		break;
 
-  /*TODO*/
+  /*TODO??*/
 	case RPL_NOWAWAY:
 
 		IRCParse_RplNowAway(string, &prefix, &nick, &msg);
@@ -2849,7 +2853,7 @@ void comandoARealizar(char *string, int sock) {
 
 		break;
 
-  /*TODO falta cuando un usuario se une a un canal*/
+  /*Hecho*/
 	case JOIN:
 
 		printf("Recibido JOIN del servidor\n");
@@ -2861,7 +2865,7 @@ void comandoARealizar(char *string, int sock) {
 		//printf("1.Join----%s--%s--%s--%s--%s\n", prefix, channel, key, msg, nickC);
 
 		if (strcmp(nickC, nickname) != 0)
-			sprintf(msgaux, "%s (~%s@%s) ha entrado en %s.\n", nickname, nickname, server, msg);
+			sprintf(msgaux, "%s (~%s@%s) se ha unido\n", nickname, nickname, server);
 		else
 			sprintf(msgaux, "Hablando con %s.\n", msg);
 
@@ -2886,31 +2890,33 @@ void comandoARealizar(char *string, int sock) {
 
 	  break;
 
-	//TODO Me falta que el mensaje de Usted es ahora conocido como se imprima en los canales
+  /*Hecho*/
 	case NICK:
 
 		printf("<< NICK\n");
 		IRCParse_Nick(string, &prefix, &nick, &msg);
 		IRCParse_ComplexUser(string, &nickname, &username, &host, &server);
 
-		printf("1.Nick---%s--%s--%s\n", prefix, nick, msg);
+		printf("1.Nick---%s--%s--%s--%s\n", prefix, nick, msg, nickname);
 
 		if (strcmp(nickname, nickC) != 0) {
-			sprintf(msgaux, "%s es ahora conocido como %s", nickname, msg);
+      /*TODO nocambia el nombre en la conversacion privada*/
+			sprintf(msgaux, "%s ahora se conoce como %s", nickname, msg);
 			IRCInterface_ChangeNickThread(nickname, msg);
+      IRCInterface_WriteSystemThread(NULL, msgaux);
 		} else {
-			sprintf(msgaux, "Usted es ahora conocido como %s", msg);
+			sprintf(msgaux, "Ahora eres conocido como %s", msg);
 			IRCInterface_ChangeNickThread(nickC, msg);
 			IRCInterface_WriteSystemThread(NULL, msgaux);
 			strcpy(nickC, msg);
 		}
 
-		IRCInterface_PlaneRegisterInMessageThread(string);
+		IRCInterface_PlaneRegisterOutMessageThread(string);
 		IRCInterface_WriteChannelThread(IRCInterface_ActiveChannelName(), NULL, msgaux);
 
 		free(prefix);
 		free(nick);
-		;
+		free(msg);
 		free(nickname);
 		free(username);
 		free(host);
@@ -2918,6 +2924,7 @@ void comandoARealizar(char *string, int sock) {
 
 		break;
 
+  /*Hecho*/
 	case LIST:
 
 		printf("<< LIST\n");
@@ -2932,6 +2939,7 @@ void comandoARealizar(char *string, int sock) {
 
 	   	break;
 
+    /*Hecho*/
     case QUIT:
 
     	printf("<< QUIT\n");
@@ -2956,7 +2964,7 @@ void comandoARealizar(char *string, int sock) {
 		}*/
 
 		free(prefix);
-		;
+		free(msg);
 		free(nickname);
 		free(username);
 		free(host);
@@ -2968,6 +2976,7 @@ void comandoARealizar(char *string, int sock) {
 
 	   	break;*/
 
+  /*Hecho*/
 	case PRIVMSG:
 
 		printf("<< PRIVMSG\n");
@@ -2975,14 +2984,14 @@ void comandoARealizar(char *string, int sock) {
 		IRCParse_Privmsg(string, &prefix, &msgtarget, &msg);
 		IRCParse_ComplexUser(prefix, &nickname, &username, &host, &server);
 
-		printf("1.Privmsg--%s--%s--%s\n", prefix, msgtarget, msg);
+    printf("QUIEN LO ENVIA %s %s %s\n", msgtarget, nickname, username);
 
-		if (IRCInterface_QueryChannelExistThread(msgtarget) == FALSE) {
-			IRCInterface_AddNewChannelThread(msgtarget, NONE);
+		if (IRCInterface_QueryChannelExistThread(nickname) == FALSE) {
+			IRCInterface_AddNewChannelThread(nickname, NONE);
 		}
 
-		IRCInterface_WriteChannelThread(msgtarget, nickname, msg);
-		IRCInterface_PlaneRegisterInMessageThread(string);
+		IRCInterface_WriteChannelThread(nickname, nickname, msg);
+		IRCInterface_PlaneRegisterOutMessage(string);
 
 		free(prefix);
 		free(msgtarget);
@@ -2994,15 +3003,28 @@ void comandoARealizar(char *string, int sock) {
 
 	   	break;
 
+
   	case NAMES:
 
         break;
 
+  /*Hecho*/
 	case AWAY:
 
-   	   	break;
+    printf("<< AWAY\n");
 
-   	// Faltaria cambiar nombre al canal o modo y eliminar todos los nicks
+    IRCParse_Away (string, &prefix, &msg);
+
+    sprintf(msgaux, "You have been marked as being away");
+
+    IRCInterface_WriteSystemThread(NULL, msgaux);
+
+    free(prefix);
+    free(msg);
+
+   	break;
+
+  /*Hecho*/
 	case KICK:
 
 		printf("<< KICK\n");
@@ -3010,9 +3032,9 @@ void comandoARealizar(char *string, int sock) {
 		IRCParse_ComplexUser(prefix, &nickname, &username, &host, &server);
 
 		if (strcmp(user, nickC)) {
-			sprintf(msgaux, "%s ha echado a %s de %s (%s)", nickname, user, channel, nickname);
+			sprintf(msgaux, "%s ha expulsado a %s de %s (%s)", nickname, user, channel, nickname);
 		} else {
-			sprintf(msgaux, "Se le ha echado de %s por %s (%s)", channel, nickname, nickname);
+			sprintf(msgaux, "Has sido expulsado de %s por %s (%s)", channel, nickname, nickname);
 		}
 
 		IRCInterface_WriteChannelThread(channel, NULL, msgaux);
@@ -3031,6 +3053,7 @@ void comandoARealizar(char *string, int sock) {
 
 	   	break;
 
+  /*Hecho*/
 	case PART:
 
 		printf("<< PART\n");
@@ -3038,19 +3061,25 @@ void comandoARealizar(char *string, int sock) {
 		IRCParse_ComplexUser(prefix, &nickname, &username, &host, &server);
 
 		if (strcmp(nickname, nickC) != 0) {
-			sprintf(msgaux,"%s (%s) ha abandonado %s (%s)", nickname, server, channel, nickname);
+      if(msg == NULL)
+			  sprintf(msgaux,"%s (%s) ha salido", nickname, server);
+      else
+        sprintf(msgaux,"%s (%s) ha salido (%s)", nickname, server, msg);
 		} else {
-			sprintf(msgaux,"Ha abandonado el canal %s (%s)", channel, msg);
+      if(msg == NULL)
+			  sprintf(msgaux,"Has abandonado el canal %s (Leaving)", channel);
+      else
+        sprintf(msgaux,"Has abandonado el canal %s (%s)", channel, msg);
 		}
 
 		IRCInterface_WriteChannelThread(channel, NULL, msgaux);
 
 		IRCInterface_DeleteNickChannel(channel, nickname);
-		IRCInterface_PlaneRegisterInMessageThread(string);
+		IRCInterface_PlaneRegisterOutMessageThread(string);
 
 	  	free(prefix);
 	  	free(channel);
-	  	;
+	  	free(msg);
 	  	free(nickname);
 	  	free(username);
 	  	free(host);
@@ -3058,6 +3087,7 @@ void comandoARealizar(char *string, int sock) {
 
 	   	break;
 
+  /*Hecho*/
 	case MODE:
 
 		IRCParse_Mode(string, &prefix, &channeluser, &mode, &user);

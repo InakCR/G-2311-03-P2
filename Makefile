@@ -13,6 +13,7 @@ CC = gcc -pthread
 LDFLAGS = -lm
 CCLIBS = -lircinterface -lircredes -lirctad
 CCLAGS =  -rdynamic
+CCSOUND = -lsoundredes -lpulse -lpulse-simple
 FLAGS = `pkg-config --cflags gtk+-3.0 --libs gtk+-3.0`
 FLAGSE = `pkg-config --libs gtk+-3.0`
 FLAGSC = `pkg-config --cflags gtk+-3.0`
@@ -23,13 +24,14 @@ SOURCE_FILES =
 all: $(EXEC)
 
 $(EXEC): $(GROUP)xchat2.o
-			$(CC) $^ -o $@ $(CCLIBS) $(FLAGSE) $(CCLAGS)
+			$(CC) $^ -o $@ $(CCLIBS) $(FLAGSE) $(CCLAGS) $(CCSOUND)
 
 $(GROUP)xchat2.o: $(GROUP)xchat2.c
-			$(CC) $(CCLAGS) $(FLAGSC) -c -o $@ $^
+			$(CC) $(CCLAGS) $(CCSOUND) $(FLAGSC) -c -o $@ $^
 
 clean:
 		rm -f *.o *.gch $(GROUP).tar.gz $(EXEC)
+
 dox:
 		doxygen Doxyfile
 
