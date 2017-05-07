@@ -538,11 +538,63 @@ void IRCInterface_BanNick(char *channel, char *nick) {
   }
 }
 
-/*Simplifica recv()*/
+/**
+ * @ingroup AlumnosFunctions
+ *
+ * @page recvCommand
+ *
+ * @brief Llamada desde client().
+ *
+ * @synopsis
+ * @code
+ *
+ * 	int recvCommand(int sock, char* command)
+ * @endcode
+ *
+ * @description
+ *  Llama a la función recv() que escucha en un puerto y recibe comandos de
+ *  este.
+ *
+ * @param
+ *
+ * @warning Creada por el alumno.
+ *
+ * @author
+ * Enrique Aracil, Iñaki Cadalso
+ *
+ *<hr>
+*/
 int recvCommand(int sock, char* command) {
 	return recv(sock, command, 8192, 0);
 }
 
+/**
+ * @ingroup AlumnosFunctions
+ *
+ * @page client
+ *
+ * @brief Llamada al comenzar la aplicacion.
+ *
+ * @synopsis
+ * @code
+ *	#include <pthread.h>
+ *
+ * 	void *client ()
+ * @endcode
+ *
+ * @description
+ * LLamada al iniciar la aplicación y conectar con el servidor.
+ * Crea la alarma y espera cualquier comando del servidor.
+ *
+ * @param
+ *
+ * @warning Creada por el alumno.
+ *
+ * @author
+ * Enrique Aracil, Iñaki Cadalso
+ *
+ *<hr>
+*/
 void *client() {
 
   char sendBuff[100], client_message[LOG_NUM];
@@ -2211,6 +2263,32 @@ void IRCInterface_TakeOp(char *channel, char *nick) {
 
 void IRCInterface_TakeVoice(char *channel, char *nick) {}
 
+/**
+ * @ingroup AlumnosFunctions
+ *
+ * @page comandoARealizar
+ *
+ * @brief Llamada desde client().
+ *
+ * @synopsis
+ * @code
+ *
+ * 	int comandoARealizar(char *string, int sock)
+ * @endcode
+ *
+ * @description
+ *  Según el  comando recibido desde el servidor realiza ciertas acciones
+ *  sobre el cliente.
+ *
+ * @param
+ *
+ * @warning Creada por el alumno.
+ *
+ * @author
+ * Enrique Aracil, Iñaki Cadalso
+ *
+ *<hr>
+*/
 void comandoARealizar(char *string, int sock) {
 
     if (string == NULL)

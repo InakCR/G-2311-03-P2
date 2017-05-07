@@ -1,0 +1,12 @@
+\hypertarget{group__IRCInterface}{}\section{Interface}
+\label{group__IRCInterface}\index{Interface@{Interface}}
+Collaboration diagram for Interface\+:
+% FIG 0
+\subsection*{Modules}
+\begin{DoxyCompactItemize}
+\item 
+\hyperlink{group__IRCInterfaceCallbacks}{Callbaks}
+\end{DoxyCompactItemize}
+
+
+\subsection{Detailed Description}
